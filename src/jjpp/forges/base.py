@@ -1,5 +1,6 @@
 import logging
 import shlex
+import shutil
 import subprocess
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -63,26 +64,38 @@ class Forge(ABC):
         if not Path(".git/hooks/pre-commit").exists():
             log.info("No .git/hooks/pre-commit found, skipping pre-commit hooks")
             return
+
+        pc_cmd = None
+        for cmd in ["prek", "pre-commit"]:
+            if shutil.which(cmd):
+                pc_cmd = cmd
+                break
+        if not pc_cmd:
+            log.info("No pre-commit command found, skipping pre-commit hooks")
+            return
+
         changes = (
             [jj.revset_to_changeid(ref)]
             if ref
             else jj.current_stack(require_description=False)
         )
-        log.info("Pre-commit checking all changes in the stack")
+        log.debug("Pre-commit checking all changes in the stack")
         for change_id in changes:
-            try:
-                self.pre_commit(change_id)
-            except Exception:
-                raise utils.UserError(f"Pre-commit failed for change {change_id}")
-
-    def pre_commit(self, change_id: jj.ChangeID) -> None:
-        if not Path(".git/hooks/pre-commit").exists():
-            log.info("No .git/hooks/pre-commit found, skipping pre-commit hooks")
-            return
-        with jj.with_edit(change_id):
-            files = jj.files_in(change_id)
-            log.info(f"Running pre-commit on {change_id} ({shlex.join(files)})")
-            subprocess.run(["pre-commit", "run", "--files", *files], check=True)
+            with jj.with_edit(change_id):
+                files = jj.files_in(change_id)
+                descr = (jj.description_of(change_id).splitlines() or ["(untitled)"])[0]
+                if ref is None:
+                    print("=" * 80)
+                    print(f'Running {pc_cmd} on "{descr}" ({change_id})')
+                    print(f"Affected files: {shlex.join(files)}")
+                else:
+                    log.debug(f"Running {pc_cmd} on {change_id} ({shlex.join(files)})")
+                try:
+                    subprocess.run([pc_cmd, "run", "--files", *files], check=True)
+                except FileNotFoundError:
+                    raise
+                except Exception:
+                    raise utils.UserError(f"Pre-commit failed for change {change_id}")
 
     def display_list(self, items: List[CRListItem]) -> None:
         if not items:

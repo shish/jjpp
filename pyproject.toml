@@ -14,6 +14,7 @@ dependencies = [
 
 [project.scripts]
 jjpp = "jjpp.main:run"
+jjutils = "jjpp.jj_cli:main"
 
 [dependency-groups]
 dev = [

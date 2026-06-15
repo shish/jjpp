@@ -64,10 +64,18 @@ class GitHubForge(Forge):
                 )
 
     def pull(self, identifier: Optional[str] = None) -> None:
-        log.warning("[TODO] Pull PR")
-        if identifier:
-            pr_number = int(identifier)
-            log.warning(f"  PR: #{pr_number}")
+        if not identifier:
+            raise ValueError("Pulling a PR requires an identifier (PR number)")
+        utils.run(
+            [
+                "gh",
+                "pr",
+                "checkout",
+                identifier,
+                "--repo",
+                self.remote_url,
+            ]
+        )
 
     def list(self) -> None:
         log.warning("[TODO] Listing PRs")

@@ -92,6 +92,14 @@ def pre_commit_command(
         f.pre_commit(change_id)
 
 
+@app.command("sync")
+def sync_command(ctx: typer.Context) -> None:
+    """Pull from remote and rebase local branches"""
+    opts: GlobalOptions = ctx.obj
+    jj.run("git", "fetch", "--remote", opts.remote)
+    jj.run("rebase", "--skip-emptied", "-d", "trunk()", "-r", "mutable()")
+
+
 def run() -> None:
     """Entry point for the CLI application."""
     app()

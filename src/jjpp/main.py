@@ -57,7 +57,7 @@ def push(
 @app.command()
 def checkout(
     ctx: typer.Context,
-    identifier: Optional[str] = typer.Argument(None, help="PR/Diff/CR ID"),
+    identifier: str = typer.Argument(None, help="PR/Diff/CR ID"),
 ) -> None:
     """Checkout changes from the forge."""
     opts: GlobalOptions = ctx.obj

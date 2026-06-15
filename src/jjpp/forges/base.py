@@ -27,7 +27,7 @@ class Forge(ABC):
         pass
 
     @abstractmethod
-    def checkout(self, identifier: Optional[str] = None) -> None:
+    def checkout(self, identifier: str) -> None:
         """Checkout changes from the forge."""
         pass
 

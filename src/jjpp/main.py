@@ -1,0 +1,87 @@
+import logging
+import os
+from typing import Optional
+
+import typer
+
+from . import jj
+from .cli import GlobalOptions
+from .utils import get_forge_or_die
+
+app = typer.Typer(help="Unified CLI for multiple code review forges")
+
+
+@app.callback(invoke_without_command=False)
+def main(
+    ctx: typer.Context,
+    forge: Optional[str] = typer.Option(
+        None,
+        "--forge",
+        help="Specify the forge (auto-detects from git remote if not provided)",
+    ),
+    remote: str = typer.Option("origin", "--remote", help="Git remote to use"),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Enable verbose output"
+    ),
+) -> None:
+    """Unified CLI for multiple code review forges."""
+    logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO)
+
+    ctx.obj = GlobalOptions(forge=forge, remote=remote)
+
+
+@app.command()
+def push(
+    ctx: typer.Context,
+    ref: Optional[str] = typer.Option(None, "--ref", help="Ref/branch to push to"),
+    pre_commit: bool = typer.Option(
+        True,
+        "--pre-commit/--no-pre-commit",
+        help="Run or skip pre-commit hooks",
+    ),
+) -> None:
+    """Push changes to the forge."""
+    opts: GlobalOptions = ctx.obj
+    f = get_forge_or_die(opts)
+    change_id = jj.revset_to_changeid(ref) if ref else jj.closest_work()
+    if pre_commit:
+        f.pre_commit(change_id)
+    f.push(change_id)
+
+
+@app.command()
+def pull(
+    ctx: typer.Context,
+    identifier: Optional[str] = typer.Argument(None, help="PR/Diff/CR ID"),
+) -> None:
+    """Pull changes from the forge."""
+    opts: GlobalOptions = ctx.obj
+    f = get_forge_or_die(opts)
+    f.pull(identifier)
+
+
+@app.command()
+def list(
+    ctx: typer.Context,
+) -> None:
+    """List items on the forge."""
+    opts: GlobalOptions = ctx.obj
+    f = get_forge_or_die(opts)
+    f.list()
+
+
+@app.command("pre-commit")
+def pre_commit_command(
+    ctx: typer.Context,
+    ref: Optional[str] = typer.Option(None, "--ref", help="Ref to check"),
+) -> None:
+    """Run pre-commit hooks."""
+    opts: GlobalOptions = ctx.obj
+    f = get_forge_or_die(opts)
+    change_id = jj.revset_to_changeid(ref) if ref else jj.closest_work()
+    f.pre_commit(change_id)
+
+
+def run() -> None:
+    """Entry point for the CLI application."""
+    app()

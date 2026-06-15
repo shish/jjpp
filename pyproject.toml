@@ -1,0 +1,26 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "jjpp"
+version = "0.1.0"
+description = "Unified CLI for multiple code review forges (GitHub, Phabricator, Gerrit)"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "typer>=0.26.7",
+]
+
+[project.scripts]
+jjpp = "jjpp.main:run"
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.6.0",
+    "ruff>=0.1.0",
+    "ty>=0.0.49",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/jjpp"]

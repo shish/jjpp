@@ -1,7 +1,7 @@
 import logging
 from typing import Optional
 
-from .. import jj
+from .. import jj, utils
 from .base import Forge
 
 log = logging.getLogger(__name__)
@@ -17,7 +17,7 @@ class PhabricatorForge(Forge):
         for change_id in changes:
             with jj.with_new(change_id):
                 log.warning(f"[TODO] Pushing {change_id}")
-                # jj.run('arc', 'diff', 'HEAD^')
+                utils.run(["arc", "diff", "HEAD^"])
 
     def checkout(self, identifier: str) -> None:
         log.warning(f"[TODO] Checkout diff {identifier}")

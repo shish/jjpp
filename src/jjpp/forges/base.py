@@ -3,11 +3,31 @@ import shlex
 import subprocess
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 from .. import jj, utils
 
 log = logging.getLogger(__name__)
+
+
+class CRListItem:
+    """Represents an item in a code review list."""
+
+    def __init__(
+        self,
+        identifier: str,
+        title: str,
+        url: Optional[str],
+        extra: Optional[str] = None,
+    ):
+        self.identifier = identifier
+        self.title = title
+        self.url = url
+        self.extra = extra
+
+    def __str__(self) -> str:
+        title_link = utils.hyperlink(self.url, self.title) if self.url else self.title
+        return f"{self.identifier}: {title_link} {self.extra}".strip()
 
 
 class ForgeException(Exception):
@@ -60,3 +80,11 @@ class Forge(ABC):
             files = jj.files_in(change_id)
             log.info(f"Running pre-commit on {change_id} ({shlex.join(files)})")
             subprocess.run(["pre-commit", "run", "--files", *files], check=True)
+
+    def display_list(self, items: List[CRListItem]) -> None:
+        if not items:
+            print("No items found on the forge")
+            return
+        print("Items on the forge:")
+        for item in items:
+            print(f"  {item}")

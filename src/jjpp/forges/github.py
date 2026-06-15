@@ -4,7 +4,7 @@ import re
 from typing import Optional
 
 from .. import jj, utils
-from .base import Forge
+from .base import CRListItem, Forge
 
 log = logging.getLogger(__name__)
 
@@ -83,7 +83,14 @@ class GitHubForge(Forge):
             "number,title,state,url",
         ]
         prs = json.loads(utils.run(cmd))
+        crs = []
         for pr in prs:
-            print(
-                f"#{pr['number']}: {utils.hyperlink(pr['url'], pr['title'])} [{pr['state']}]"
+            crs.append(
+                CRListItem(
+                    identifier=str(pr["number"]),
+                    title=pr["title"],
+                    url=pr["url"],
+                    extra=f"[{pr['state']}]",
+                )
             )
+        self.display_list(crs)

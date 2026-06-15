@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 from urllib.request import urlopen
 
 from .. import jj, utils
-from .base import Forge
+from .base import CRListItem, Forge
 
 log = logging.getLogger(__name__)
 
@@ -89,51 +89,51 @@ class GerritForge(Forge):
     def list(self) -> None:
         """List the user's open changes in Gerrit, showing any blockers."""
         log.info(f"Listing open changes from {self.gerrit_url}")
-        try:
-            # Query Gerrit REST API for current user's open changes
-            # 'owner:self' filters to current user, 'status:open' shows only open changes
-            # DETAILED_LABELS shows reviewer votes and blocking votes
-            url = f"{self.gerrit_url}/a/changes/?q=owner:self+status:open&o=DETAILED_LABELS&o=MESSAGES"
-            with urlopen(url) as response:
-                result = response.read().decode("utf-8")
-            # Gerrit API returns a magic prefix that needs to be stripped
-            if result.startswith(")]}'"):
-                result = result[5:]
-            changes = json.loads(result)
+        # Query Gerrit REST API for current user's open changes
+        # 'owner:self' filters to current user, 'status:open' shows only open changes
+        # DETAILED_LABELS shows reviewer votes and blocking votes
+        url = f"{self.gerrit_url}/a/changes/?q=owner:self+status:open&o=DETAILED_LABELS&o=MESSAGES"
+        with urlopen(url) as response:
+            result = response.read().decode("utf-8")
+        # Gerrit API returns a magic prefix that needs to be stripped
+        if result.startswith(")]}'"):
+            result = result[5:]
+        changes = json.loads(result)
 
-            if not changes:
-                print("No open changes found.")
-                return
+        if not changes:
+            print("No open changes found.")
+            return
 
-            for change in changes:
-                number = change.get("_number", "N/A")
-                subject = change.get("subject", "N/A")
-                status = change.get("status", "N/A")
+        crs = []
+        for change in changes:
+            number = change.get("_number", "N/A")
+            subject = change.get("subject", "N/A")
+            status = change.get("status", "N/A")
 
-                # Check for blockers
-                blockers = []
-                labels = change.get("labels", {})
+            # Check for blockers
+            blockers = []
+            labels = change.get("labels", {})
+            for label_name, label_data in labels.items():
+                votes = label_data.get("all", [])
+                for vote in votes:
+                    value = vote.get("value")
+                    # Check for blocking votes (-2) or negative votes (-1)
+                    if value == -2:
+                        blocker_name = vote.get("name", "Unknown")
+                        blockers.append(f"Blocked by {blocker_name} ({label_name})")
+                    elif value == -1:
+                        blocker_name = vote.get("name", "Unknown")
+                        blockers.append(f"{label_name}: {blocker_name}")
 
-                for label_name, label_data in labels.items():
-                    votes = label_data.get("all", [])
-                    for vote in votes:
-                        value = vote.get("value")
-                        # Check for blocking votes (-2) or negative votes (-1)
-                        if value == -2:
-                            blocker_name = vote.get("name", "Unknown")
-                            blockers.append(f"Blocked by {blocker_name} ({label_name})")
-                        elif value == -1:
-                            blocker_name = vote.get("name", "Unknown")
-                            blockers.append(f"{label_name}: {blocker_name}")
-
-                # Format output
-                blocker_str = f" [{', '.join(blockers)}]" if blockers else ""
-                change_url = (
-                    f"{self.gerrit_url}/c/{number}" if number != "N/A" else None
+            blocker_str = f" [{', '.join(blockers)}]" if blockers else ""
+            change_url = f"{self.gerrit_url}/c/{number}" if number != "N/A" else None
+            crs.append(
+                CRListItem(
+                    identifier=str(number),
+                    title=subject,
+                    url=change_url,
+                    extra=f"[{status}]{blocker_str}",
                 )
-                subject_link = (
-                    utils.hyperlink(change_url, subject) if change_url else subject
-                )
-                print(f"Change {number}: {subject_link} [{status}]{blocker_str}")
-        except Exception as e:
-            log.error(f"Failed to list changes: {e}")
+            )
+
+        self.display_list(crs)

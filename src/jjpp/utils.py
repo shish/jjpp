@@ -152,3 +152,10 @@ def get_forge_or_die(opts: GlobalOptions) -> Forge:
     if forge is None:
         raise typer.Exit(code=1)
     return forge
+
+
+def hyperlink(url: str, text: Optional[str] = None) -> str:
+    """Return a string that will be rendered as a hyperlink in supported terminals."""
+    if text is None:
+        text = url
+    return f"\033]8;;{url}\033\\{text}\033]8;;\033\\"

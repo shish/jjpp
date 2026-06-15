@@ -98,17 +98,19 @@ class Forge(ABC):
                     raise utils.UserError(f"Pre-commit failed for change {change_id}")
 
     def display_list(self, items: List[CRListItem]) -> None:
-        title = f"{self.__class__.__name__} ({self.remote_url})"
+        console = Console()
+
+        title = self.__class__.__name__
+        url = self.remote_url
         if not items:
-            print(f"No reviews on {title}")
+            console.print(f"[green]No reviews on [link={url}]{title}[/link][/green]")
             return
 
         all_extra_keys = set()
         for item in items:
             all_extra_keys.update(item.extra.keys())
 
-        console = Console()
-        table = Table(title=f"Reviews on {title}")
+        table = Table(title=f"Reviews on [link={url}]{title}[/link]")
         table.add_column("ID", style="cyan")
         table.add_column("Title", style="magenta")
         for key in sorted(all_extra_keys):

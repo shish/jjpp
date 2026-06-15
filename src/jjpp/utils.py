@@ -159,3 +159,16 @@ def hyperlink(url: str, text: Optional[str] = None) -> str:
     if text is None:
         text = url
     return f"\033]8;;{url}\033\\{text}\033]8;;\033\\"
+
+
+def unique_branch_name(name: str) -> str:
+    """Generate a unique branch name by appending a number if the branch already exists."""
+    counter = 1
+    unique_name = name
+    while True:
+        result = subprocess.run(["git", "show-ref", "--quiet", unique_name])
+        if result.returncode != 0:
+            break
+        unique_name = f"{name}-{counter}"
+        counter += 1
+    return unique_name

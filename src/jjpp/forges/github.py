@@ -1,3 +1,4 @@
+import json
 import logging
 import re
 from typing import Optional
@@ -18,7 +19,11 @@ class GitHubForge(Forge):
         if pre_commit:
             log.info("Pre-commit checking all changes in the stack")
             for change_id in changes:
-                self.pre_commit(change_id)
+                try:
+                    self.pre_commit(change_id)
+                except Exception:
+                    log.error(f"Pre-commit failed for change {change_id}")
+                    return
 
         # if a change between the base and current change has
         # a branch name that starts with "pr/":
@@ -44,7 +49,7 @@ class GitHubForge(Forge):
                 raise ValueError(f"No description found for change {changes[-1]}")
             title = description.splitlines()[0]
             sanitized_title = re.sub(r"[^a-zA-Z0-9\-]+", "-", title).strip("-").lower()
-            pr_branch = f"pr/{sanitized_title}"
+            pr_branch = utils.unique_branch_name(f"pr/{sanitized_title}")
             log.info(f"Creating new PR branch: {pr_branch}")
             with jj.with_new(changes[-1]):
                 jj.run("bookmark", "create", pr_branch, "-r", changes[-1])
@@ -78,4 +83,17 @@ class GitHubForge(Forge):
         )
 
     def list(self) -> None:
-        log.warning("[TODO] Listing PRs")
+        cmd = [
+            "gh",
+            "pr",
+            "list",
+            "--repo",
+            self.remote_url,
+            "--json",
+            "number,title,state,url",
+        ]
+        prs = json.loads(utils.run(cmd))
+        for pr in prs:
+            print(
+                f"#{pr['number']}: {utils.hyperlink(pr['url'], pr['title'])} [{pr['state']}]"
+            )

@@ -25,7 +25,7 @@ def main(
         False, "--verbose", "-v", help="Enable verbose output"
     ),
 ) -> None:
-    """Unified CLI for multiple code review forges."""
+    """Integrate JJ with multiple code review forges."""
     logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO)
 
     try:

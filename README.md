@@ -12,6 +12,7 @@ I really just want `jj pull` to bring me up to date with remote changes, and `jj
   * creates new ones if not
   * gerrit & phabricator create a review for each commit in the stack
   * github will create a new `pr/XYZ` branch, send that branch for review, and update that branch on subsequent pushes
+  * `jjpp push <change id>` - push an individual commit
 * `jjpp pull` - pull remote trunk and rebase local stack on top of it
   * `jjpp pull --all` - pull trunk and rebase all local stacks
 * `jjpp list` - list my open PR/CR/Diffs

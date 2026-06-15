@@ -39,8 +39,8 @@ def main(
     ctx.obj = GlobalOptions(forge=forge, remote=remote)
 
 
-@app.command()
-def push(
+@app.command("push")
+def push_command(
     ctx: typer.Context,
     ref: Optional[str] = typer.Argument(None, help="Ref to push"),
     pre_commit: bool = typer.Option(
@@ -57,8 +57,8 @@ def push(
     f.push(ref)
 
 
-@app.command()
-def checkout(
+@app.command("checkout")
+def checkout_command(
     ctx: typer.Context,
     identifier: str = typer.Argument(None, help="PR/Diff/CR ID"),
 ) -> None:
@@ -68,8 +68,8 @@ def checkout(
     f.checkout(identifier)
 
 
-@app.command()
-def list(
+@app.command("list")
+def list_command(
     ctx: typer.Context,
 ) -> None:
     """List items on the forge."""

@@ -1,21 +1,28 @@
+import logging
 from typing import Optional
 
-import typer
-
+from .. import jj
 from .base import Forge
+
+log = logging.getLogger(__name__)
 
 
 class PhabricatorForge(Forge):
-    def push(self, ref: str) -> None:
-        """Push changes to Phabricator."""
-        typer.echo(f"[TODO] Phabricator: Pushing {ref} to Phabricator")
+    def push(self, ref: Optional[str], pre_commit: bool) -> None:
+        changes = (
+            [jj.revset_to_changeid(ref)]
+            if ref
+            else jj.current_stack(require_description=True)
+        )
+        for change_id in changes:
+            with jj.with_edit(change_id):
+                log.warning(f"[TODO] Pushing {change_id}")
+                # jj.run('gerrit', 'push', '-r', change_id)
 
     def pull(self, identifier: Optional[str] = None) -> None:
-        """Pull diff from Phabricator."""
-        typer.echo("[TODO] Phabricator: Pulling from Phabricator")
+        log.warning("[TODO] Pull diff")
         if identifier:
-            typer.echo(f"  Diff ID: {identifier}")
+            log.warning(f"  Diff ID: {identifier}")
 
     def list(self) -> None:
-        """List Phabricator diffs."""
-        typer.echo("[TODO] Phabricator: Listing Phabricator diffs")
+        log.warning("[TODO] Listing diffs")

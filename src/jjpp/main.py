@@ -9,6 +9,7 @@ from .cli import GlobalOptions
 from .utils import get_forge_or_die
 
 app = typer.Typer(help="Unified CLI for multiple code review forges")
+log = logging.getLogger(__name__)
 
 
 @app.callback(invoke_without_command=False)
@@ -40,7 +41,7 @@ def main(
 @app.command()
 def push(
     ctx: typer.Context,
-    ref: Optional[str] = typer.Option(None, "--ref", help="Ref/branch to push to"),
+    ref: Optional[str] = typer.Argument(None, help="Ref to push"),
     pre_commit: bool = typer.Option(
         True,
         "--pre-commit/--no-pre-commit",
@@ -50,10 +51,7 @@ def push(
     """Push changes to the forge."""
     opts: GlobalOptions = ctx.obj
     f = get_forge_or_die(opts)
-    change_id = jj.revset_to_changeid(ref) if ref else jj.closest_work()
-    if pre_commit:
-        f.pre_commit(change_id)
-    f.push(change_id)
+    f.push(ref, pre_commit)
 
 
 @app.command()
@@ -85,8 +83,13 @@ def pre_commit_command(
     """Run pre-commit hooks."""
     opts: GlobalOptions = ctx.obj
     f = get_forge_or_die(opts)
-    change_id = jj.revset_to_changeid(ref) if ref else jj.closest_work()
-    f.pre_commit(change_id)
+    changes = (
+        [jj.revset_to_changeid(ref)]
+        if ref
+        else jj.current_stack(require_description=False)
+    )
+    for change_id in changes:
+        f.pre_commit(change_id)
 
 
 def run() -> None:

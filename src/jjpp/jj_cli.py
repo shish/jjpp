@@ -5,7 +5,7 @@ import logging
 
 import typer
 
-from jjpp.jj import closest_work, current_stack, revset_to_changeid
+from . import jj
 
 log = logging.getLogger(__name__)
 
@@ -21,13 +21,13 @@ def globals(
 
 @app.command(name="closest-work")
 def closest_work_cmd():
-    result = closest_work()
+    result = jj.closest_work()
     typer.echo(result)
 
 
 @app.command(name="current-stack")
 def current_stack_cmd():
-    result = current_stack()
+    result = jj.current_stack()
     for changeid in result:
         typer.echo(changeid)
 
@@ -36,7 +36,40 @@ def current_stack_cmd():
 def revset_to_changeid_cmd(
     revset: str = typer.Argument(..., help="The revset expression to convert"),
 ):
-    result = revset_to_changeid(revset)
+    result = jj.revset_to_changeid(revset)
+    typer.echo(result)
+
+
+@app.command("branches-pointing-to")
+def branches_pointing_to_cmd(
+    revs: list[str] = typer.Argument(..., help="The revset expressions to convert"),
+):
+    if revs:
+        changes = [jj.revset_to_changeid(rev) for rev in revs]
+    else:
+        changes = jj.current_stack(require_description=False)
+    for change_id in changes:
+        result = jj.branches_pointing_to(change_id)
+        for branch in result:
+            typer.echo(branch)
+
+
+@app.command("files-in")
+def files_in_cmd(
+    revset: str = typer.Argument(..., help="The revset expression to convert"),
+):
+    change_id = jj.revset_to_changeid(revset)
+    result = jj.files_in(change_id)
+    for file in result:
+        typer.echo(file)
+
+
+@app.command("description-of")
+def description_of_cmd(
+    revset: str = typer.Argument(..., help="The revset expression to convert"),
+):
+    change_id = jj.revset_to_changeid(revset)
+    result = jj.description_of(change_id)
     typer.echo(result)
 
 

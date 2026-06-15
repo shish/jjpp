@@ -1,3 +1,4 @@
+import logging
 import subprocess
 from typing import Optional
 from urllib.parse import urlparse
@@ -6,6 +7,64 @@ import typer
 
 from .cli import GlobalOptions
 from .forges import Forge, GerritForge, GitHubForge, PhabricatorForge
+
+log = logging.getLogger(__name__)
+
+
+def run(cmd: list[str], dry_run: bool = False) -> str:
+    """Run a command and return stdout.
+
+    Args:
+        cmd: List of command arguments to execute.
+        dry_run: If True, log the command without executing it.
+
+    Returns:
+        The stdout output of the command, or empty string if dry_run=True.
+
+    Raises:
+        subprocess.CalledProcessError: If the command fails.
+        FileNotFoundError: If the command is not found.
+    """
+    if dry_run:
+        log.info(f"[DRY RUN] Would execute: {' '.join(cmd)}")
+        return ""
+    else:
+        log.debug(f"Executing command: {' '.join(cmd)}")
+
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return result.stdout.strip()
+    except subprocess.CalledProcessError as e:
+        raise e
+    except FileNotFoundError as e:
+        raise e
+
+
+def get_merge_target(remote: str = "origin") -> str:
+    try:
+        result = subprocess.run(
+            ["git", "ls-remote", "--symref", remote, "HEAD"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        # Output format: ref: refs/heads/main	HEAD
+        output = result.stdout.strip()
+        if output.startswith("ref:"):
+            # Extract the branch name from "ref: refs/heads/main	HEAD"
+            ref_path = output.split()[1]  # "refs/heads/main"
+            if ref_path.startswith("refs/heads/"):
+                return ref_path[len("refs/heads/") :]
+        raise Exception("Could not parse git ls-remote output")
+    except subprocess.CalledProcessError as e:
+        raise Exception(f"Failed to get merge target: {e}")
+    except (FileNotFoundError, IndexError) as e:
+        raise Exception(f"Error getting merge target: {e}")
 
 
 def get_git_remote_url(remote_name: str = "origin") -> Optional[str]:
@@ -53,11 +112,11 @@ def get_forge(forge: Optional[str], remote: str) -> Optional[Forge]:
             return None
 
         if forge == "github":
-            return GitHubForge(remote_url)
+            return GitHubForge(remote, remote_url)
         elif forge == "phabricator":
-            return PhabricatorForge(remote_url)
+            return PhabricatorForge(remote, remote_url)
         elif forge == "gerrit":
-            return GerritForge(remote_url)
+            return GerritForge(remote, remote_url)
 
     # Auto-detect from remote URL
     remote_url = get_git_remote_url(remote)
@@ -79,11 +138,11 @@ def get_forge(forge: Optional[str], remote: str) -> Optional[Forge]:
         return None
 
     if detected_forge == "github":
-        return GitHubForge(remote_url)
+        return GitHubForge(remote, remote_url)
     elif detected_forge == "phabricator":
-        return PhabricatorForge(remote_url)
+        return PhabricatorForge(remote, remote_url)
     elif detected_forge == "gerrit":
-        return GerritForge(remote_url)
+        return GerritForge(remote, remote_url)
 
     return None
 

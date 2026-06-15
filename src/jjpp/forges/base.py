@@ -17,11 +17,12 @@ class ForgeException(Exception):
 
 
 class Forge(ABC):
-    def __init__(self, remote_url: str):
+    def __init__(self, remote: str, remote_url: str):
+        self.remote = remote
         self.remote_url = remote_url
 
     @abstractmethod
-    def push(self, ref: str) -> None:
+    def push(self, ref: Optional[str], pre_commit: bool) -> None:
         """Push changes to the forge."""
         pass
 

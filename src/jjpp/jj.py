@@ -1,6 +1,7 @@
 import logging
-import subprocess
 from contextlib import contextmanager
+
+from . import utils
 
 log = logging.getLogger(__name__)
 
@@ -13,20 +14,25 @@ class JjError(Exception):
     pass
 
 
-def run(*args: str) -> str:
-    """Run a jj command and return stdout."""
+def run(*args: str, dry_run: bool = False) -> str:
+    """Run a jj command and return stdout.
+
+    Args:
+        *args: Arguments to pass to jj command.
+        dry_run: If True, log the command without executing it.
+
+    Returns:
+        The stdout output of the jj command, or empty string if dry_run=True.
+
+    Raises:
+        JjError: If the jj command fails or is not found.
+    """
     try:
-        result = subprocess.run(
-            ["jj"] + list(args),
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        return result.stdout.strip()
-    except subprocess.CalledProcessError as e:
+        return utils.run(["jj"] + list(args), dry_run=dry_run)
+    except Exception as e:
+        if isinstance(e, JjError):
+            raise
         raise JjError(f"jj command failed: {' '.join(args)}") from e
-    except FileNotFoundError as e:
-        raise JjError("jj command not found") from e
 
 
 def revset_to_changeid(revset: RevSet) -> ChangeID:
@@ -37,11 +43,15 @@ def closest_work() -> ChangeID:
     return revset_to_changeid("heads(::@ & mutable() & (~empty() | merges()))")
 
 
-def current_stack() -> list[ChangeID]:
+def current_stack(require_description: bool = False) -> list[ChangeID]:
+    if require_description:
+        stack = 'trunk()..heads(::@ & mutable() & ~description(exact:"") & (~empty() | merges()))'
+    else:
+        stack = "trunk()..heads(::@ & mutable() & (~empty() | merges()))"
     output = run(
         "log",
         "-r",
-        "trunk()..heads(::@ & mutable() & (~empty() | merges()))",
+        stack,
         "--no-graph",
         "--reversed",
         "-T",
@@ -74,8 +84,32 @@ def files_in(change_id: ChangeID) -> list[str]:
     return [f for f in output.split("\n") if f]
 
 
+def branches_pointing_to(change_id: ChangeID, prefix: str = "") -> list[str]:
+    output = run(
+        "log",
+        "-r",
+        change_id,
+        "--no-graph",
+        "-T",
+        "self.bookmarks().map(|b| b.name()).join('\n')",
+    )
+    return [b for b in output.split("\n") if b and b.startswith(prefix)]
+
+
+def description_of(change_id: ChangeID) -> str:
+    output = run(
+        "log",
+        "-r",
+        change_id,
+        "--no-graph",
+        "-T",
+        "self.description()",
+    )
+    return output.strip()
+
+
 @contextmanager
-def with_edit(rev: RevSet):
+def with_edit(rev: RevSet, new: bool = False):
     """Context manager to temporarily switch to a change and reset on exit.
 
     If the target ref is already the current commit, does nothing.
@@ -93,13 +127,17 @@ def with_edit(rev: RevSet):
     is_empty = files_in(original_change_id) == []
     try:
         log.debug(f"Switching from change {original_change_id} to {target_change_id}.")
-        run("edit", target_change_id)
+        run("new" if new else "edit", target_change_id)
         yield
     finally:
         if is_empty:
-            run("new", *original_parents)
             log.debug(f"Creating new empty change with parents {original_parents}.")
             run("new", *original_parents)
         else:
             log.debug(f"Resetting back to original change {original_change_id}.")
             run("edit", original_change_id)
+
+
+@contextmanager
+def with_new(rev: RevSet):
+    yield with_edit(rev, new=True)

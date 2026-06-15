@@ -22,7 +22,7 @@ class CRListItem:
         identifier: str,
         title: str,
         url: Optional[str],
-        extra: Optional[dict] = None,
+        extra: Optional[dict[str, str]] = None,
     ):
         self.identifier = identifier
         self.title = title
@@ -91,6 +91,7 @@ class Forge(ABC):
                 else:
                     log.debug(f"Running {pc_cmd} on {change_id} ({shlex.join(files)})")
                 try:
+                    files = [f for f in files if Path(f).exists()]
                     subprocess.run([pc_cmd, "run", "--files", *files], check=True)
                 except FileNotFoundError:
                     raise

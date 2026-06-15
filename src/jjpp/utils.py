@@ -5,7 +5,6 @@ from urllib.parse import urlparse
 
 import typer
 
-from .cli import GlobalOptions
 from .forges import Forge, Gerrit, GitHub, Phabricator
 
 log = logging.getLogger(__name__)
@@ -146,13 +145,6 @@ def get_forge(forge: Optional[str], remote: str) -> Optional[Forge]:
         return Gerrit(remote, remote_url)
 
     return None
-
-
-def get_forge_or_die(opts: GlobalOptions) -> Forge:
-    forge = get_forge(opts.forge, opts.remote)
-    if forge is None:
-        raise typer.Exit(code=1)
-    return forge
 
 
 def hyperlink(url: str, text: Optional[str] = None) -> str:

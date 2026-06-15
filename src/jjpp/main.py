@@ -6,11 +6,24 @@ from typing import Optional
 import typer
 
 from . import jj, utils
-from .cli import GlobalOptions
-from .utils import get_forge_or_die
+from .forges import Forge
+from .utils import get_forge
 
 app = typer.Typer(help="Unified CLI for multiple code review forges")
 log = logging.getLogger(__name__)
+
+
+class GlobalOptions:
+    def __init__(self, forge: Optional[str] = None, remote: str = "origin"):
+        self.forge = forge
+        self.remote = remote
+
+
+def get_forge_or_die(opts: GlobalOptions) -> Forge:
+    forge = get_forge(opts.forge, opts.remote)
+    if forge is None:
+        raise typer.Exit(code=1)
+    return forge
 
 
 @app.callback(invoke_without_command=False)

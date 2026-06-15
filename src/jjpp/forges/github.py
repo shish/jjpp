@@ -22,25 +22,23 @@ class GitHubForge(Forge):
 
         # if a change between the base and current change has
         # a branch name that starts with "pr/":
-        # - advance that branch to the current change
-        # - force-push the branch to the remote
-        # else:
-        # - create a new branch named "pr/<sanitized-title>" where
-        #   <sanitized-title> is a name based on the description of
-        #   the last change in the stack
-        # - push that branch to the remote
-        # - create a PR on GitHub with the new branch as the source
-        #   and the merge target as the destination
-
         branches = [jj.branches_pointing_to(change, prefix="pr/") for change in changes]
         branches = [b[0] for b in branches if b]
         if branches:
+            # - advance that branch to the current change
+            # - force-push the branch to the remote
             pr_branch = branches[-1]
             log.info(f"Found existing PR branch: {pr_branch}")
             with jj.with_new(changes[-1]):
-                jj.run("bookmark", "advance", pr_branch)
+                jj.run("bookmark", "advance", pr_branch, "--to", changes[-1])
                 jj.run("git", "push", "--remote", self.remote, "--bookmark", pr_branch)
         else:
+            # - create a new branch named "pr/<sanitized-title>" where
+            #   <sanitized-title> is a name based on the description of
+            #   the last change in the stack
+            # - push that branch to the remote
+            # - create a PR on GitHub with the new branch as the source
+            #   and the merge target as the destination
             description = jj.description_of(changes[-1])
             if not description:
                 raise ValueError(f"No description found for change {changes[-1]}")
@@ -49,10 +47,21 @@ class GitHubForge(Forge):
             pr_branch = f"pr/{sanitized_title}"
             log.info(f"Creating new PR branch: {pr_branch}")
             with jj.with_new(changes[-1]):
-                jj.run("bookmark", "create", pr_branch)
+                jj.run("bookmark", "create", pr_branch, "-r", changes[-1])
                 jj.run("git", "push", "--remote", self.remote, "--bookmark", pr_branch)
                 base = utils.get_merge_target()
-                utils.run(["gh", "pr", "create", "--fill", "--base", base])
+                utils.run(
+                    [
+                        "gh",
+                        "pr",
+                        "create",
+                        "--fill",
+                        "--head",
+                        pr_branch,
+                        "--base",
+                        base,
+                    ]
+                )
 
     def pull(self, identifier: Optional[str] = None) -> None:
         log.warning("[TODO] Pull PR")

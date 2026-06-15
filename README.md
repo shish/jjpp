@@ -7,14 +7,14 @@ I really just want `jj pull` to bring me up to date with remote changes, and `jj
 
 ## Features
 
+* `jjpp pull` - pull remote trunk and rebase local stack on top of it
+  * `jjpp pull --all` - pull trunk and rebase all local stacks
 * `jjpp push` - push current stack to the forge
   * updates existing PR/CRs/Diffs if they exist
   * creates new ones if not
   * gerrit & phabricator create a review for each commit in the stack
   * github will create a new `pr/XYZ` branch, send that branch for review, and update that branch on subsequent pushes
   * `jjpp push <change id>` - push an individual commit
-* `jjpp pull` - pull remote trunk and rebase local stack on top of it
-  * `jjpp pull --all` - pull trunk and rebase all local stacks
 * `jjpp list` - list my open PR/CR/Diffs
 * `jjpp pre-commit` - run pre-commit hooks on all commits in the current stack
   * `jjpp pre-commit <change id>` - run pre-commit hooks on a specific change

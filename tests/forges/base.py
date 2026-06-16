@@ -4,10 +4,7 @@ import logging
 import os
 from pathlib import Path
 
-from jjpp import forges
 from jjpp.forges.base import CRListItem, Forge
-
-from ..conftest import run_cmd
 
 log = logging.getLogger(__name__)
 

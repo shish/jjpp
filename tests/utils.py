@@ -64,9 +64,9 @@ class TestGetMergeTarget:
         target = utils.get_merge_target("origin")
         assert target == "main"
 
-    def test_get_merge_target_invalid_remote(self, tmp_git_repo: Path):
+    def test_get_merge_target_invalid_remote(self, tmp_jj_repo: Path):
         """Test that invalid remote raises exception."""
-        os.chdir(tmp_git_repo)
+        os.chdir(tmp_jj_repo)
         with pytest.raises(Exception):
             utils.get_merge_target("nonexistent")
 
@@ -85,9 +85,9 @@ class TestGetGitRemoteUrl:
         assert url is not None
         assert str(remote_repo) in url
 
-    def test_get_git_remote_url_nonexistent_remote(self, tmp_git_repo: Path):
+    def test_get_git_remote_url_nonexistent_remote(self, tmp_jj_repo: Path):
         """Test getting URL of non-existent remote returns None."""
-        os.chdir(tmp_git_repo)
+        os.chdir(tmp_jj_repo)
         url = utils.get_git_remote_url("nonexistent")
         assert url is None
 
@@ -105,9 +105,9 @@ class TestGetGitRemoteUrl:
 class TestUniqueBranchName:
     """Tests for utils.unique_branch_name() function."""
 
-    def test_unique_branch_name_non_existent(self, tmp_git_repo: Path):
+    def test_unique_branch_name_non_existent(self, tmp_jj_repo: Path):
         """Test generating unique name for non-existent branch."""
-        os.chdir(tmp_git_repo)
+        os.chdir(tmp_jj_repo)
         name = utils.unique_branch_name("new-branch")
         assert name == "new-branch"
 

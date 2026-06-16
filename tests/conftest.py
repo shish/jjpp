@@ -2,6 +2,7 @@
 
 import logging
 import os
+import shlex
 import shutil
 import subprocess
 import tempfile
@@ -14,35 +15,22 @@ log = logging.getLogger(__name__)
 
 
 def run_cmd(*args: str, cwd: Union[str, None] = None, text: bool = True) -> str:
-    result = subprocess.run(
-        args,
-        check=True,
-        capture_output=True,
-        text=text,
-        cwd=cwd,
-    )
-    return result.stdout.strip() if text else result.stdout
-
-
-@pytest.fixture
-def tmp_git_repo() -> Generator[Path, None, None]:
-    """Create a temporary git repository.
-
-    Yields:
-        Path to the temporary git repository.
-    """
-    tmp_dir = tempfile.mkdtemp(prefix="jjpp_git_")
-    original_dir = os.getcwd()
-
+    log.info(f"Running test-setup command: {shlex.join(args)} in {cwd or os.getcwd()}")
     try:
-        os.chdir(tmp_dir)
-        run_cmd("git", "init")
-        run_cmd("git", "config", "user.email", "test@example.com")
-        run_cmd("git", "config", "user.name", "Test User")
-        yield Path(tmp_dir)
-    finally:
-        os.chdir(original_dir)
-        shutil.rmtree(tmp_dir, ignore_errors=True)
+        result = subprocess.run(
+            args,
+            check=True,
+            capture_output=True,
+            text=text,
+            cwd=cwd,
+        )
+        return result.stdout.strip() if text else result.stdout
+    except subprocess.CalledProcessError as e:
+        log.error(f"Command failed: {shlex.join(args)}")
+        log.error(f"Return code: {e.returncode}")
+        log.error(f"stdout: {e.stdout}")
+        log.error(f"stderr: {e.stderr}")
+        raise
 
 
 @pytest.fixture
@@ -198,7 +186,7 @@ def jj_repo_with_empty_commit(tmp_jj_repo: Path) -> Generator[Path, None, None]:
 
 
 @pytest.fixture
-def git_repo_with_commits(tmp_git_repo: Path) -> Generator[Path, None, None]:
+def git_repo_with_commits(tmp_jj_repo: Path) -> Generator[Path, None, None]:
     """Create a git repository with some commits.
 
     Creates:
@@ -211,7 +199,7 @@ def git_repo_with_commits(tmp_git_repo: Path) -> Generator[Path, None, None]:
     original_dir = os.getcwd()
 
     try:
-        os.chdir(tmp_git_repo)
+        os.chdir(tmp_jj_repo)
 
         # Create initial commit
         Path("file1.txt").write_text("initial content")
@@ -226,14 +214,14 @@ def git_repo_with_commits(tmp_git_repo: Path) -> Generator[Path, None, None]:
         # Set main as default branch
         run_cmd("git", "symbolic-ref", "HEAD", "refs/heads/main")
 
-        yield tmp_git_repo
+        yield tmp_jj_repo
     finally:
         os.chdir(original_dir)
 
 
 @pytest.fixture
 def git_repo_with_remote(
-    tmp_git_repo: Path,
+    tmp_jj_repo: Path,
 ) -> Generator[tuple[Path, Path], None, None]:
     """Create a git repository with a configured remote.
 
@@ -255,7 +243,7 @@ def git_repo_with_remote(
         run_cmd("git", "init", "--bare")
 
         # Configure local repo with remote
-        os.chdir(tmp_git_repo)
+        os.chdir(tmp_jj_repo)
         run_cmd("git", "remote", "add", "origin", remote_dir)
 
         # Create and push initial commit
@@ -264,7 +252,7 @@ def git_repo_with_remote(
         run_cmd("git", "commit", "-m", "Initial")
         run_cmd("git", "push", "-u", "origin", "main")
 
-        yield (tmp_git_repo, Path(remote_dir))
+        yield (tmp_jj_repo, Path(remote_dir))
     finally:
         os.chdir(original_dir)
         if remote_dir:

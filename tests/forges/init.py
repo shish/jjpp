@@ -90,15 +90,15 @@ class TestGetForge:
         assert forge is not None
         assert forge.__class__.__name__ == "GitHub"
 
-    def test_get_forge_nonexistent_remote(self, tmp_git_repo: Path):
+    def test_get_forge_nonexistent_remote(self, tmp_jj_repo: Path):
         """Test that nonexistent remote returns None."""
-        os.chdir(tmp_git_repo)
+        os.chdir(tmp_jj_repo)
         forge = forges.get_forge(None, "nonexistent")
         assert forge is None
 
-    def test_get_forge_no_auto_detect_no_forge_specified(self, tmp_git_repo: Path):
+    def test_get_forge_no_auto_detect_no_forge_specified(self, tmp_jj_repo: Path):
         """Test that unknown URL without explicit forge returns None."""
-        os.chdir(tmp_git_repo)
+        os.chdir(tmp_jj_repo)
         run_cmd("git", "remote", "add", "origin", "https://unknown.example.com/repo")
 
         forge = forges.get_forge(None, "origin")

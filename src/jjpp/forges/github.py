@@ -86,11 +86,18 @@ class GitHub(Forge):
             "--repo",
             self.remote_url,
             "--json",
-            "number,title,state,url",
+            "number,title,state,url,statusCheckRollup",
         ]
         prs = json.loads(utils.run(cmd))
         crs: list[CRListItem] = []
         for pr in prs:
+            # Merge status checks into a blockers string
+            checks = pr.get("statusCheckRollup", [])
+            blockers = ", ".join(
+                f"{check['name']}: {check['conclusion']}"
+                for check in checks
+                if check.get("conclusion") != "SUCCESS"
+            )
             crs.append(
                 CRListItem(
                     forge_name="GitHub",
@@ -99,7 +106,10 @@ class GitHub(Forge):
                     identifier=str(pr["number"]),
                     title=pr["title"],
                     url=pr["url"],
-                    extra={"state": pr["state"]},
+                    extra={
+                        "state": pr["state"],
+                        "blockers": blockers,
+                    },
                 )
             )
         return crs

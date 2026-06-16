@@ -1,0 +1,71 @@
+services:
+  # Gerrit Code Review
+  gerrit:
+    image: gerritcodereview/gerrit:latest
+    ports:
+      - "8080:8080"
+      - "29418:29418"
+    environment:
+      CANONICAL_WEB_URL: "http://gerrit.localhost:8080/"
+      GERRIT_INIT_ARGS: |
+        --install-plugin=download-commands
+        --install-plugin=replication
+        --install-plugin=webhook-events
+      GERRIT_HEAPDUMP: "false"
+    volumes:
+      - gerrit_data:/var/gerrit
+      - ./init-scripts/gerrit-init.sh:/docker-entrypoint-init.d/gerrit-init.sh:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+
+  # Phabricator
+  phabricator-mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: "phabricator"
+      MYSQL_DATABASE: "phabricator"
+    volumes:
+      - phab_mysql:/var/lib/mysql
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "-pphabricator",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  phabricator:
+    image: phabricator/phabricator:latest
+    ports:
+      - "8081:80"
+    volumes:
+      - phab_data:/srv/phabricator/phabricator
+      - phab_arcanist:/srv/phabricator/arcanist
+      - ./init-scripts/phabricator-init.sh:/docker-entrypoint-init.d/phabricator-init.sh:ro
+    depends_on:
+      phabricator-mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/status/"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 120s
+
+volumes:
+  gerrit_data:
+  phab_data:
+  phab_arcanist:
+  phab_mysql:

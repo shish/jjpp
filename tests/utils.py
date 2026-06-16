@@ -24,11 +24,6 @@ class TestRun:
         output = utils.run(["echo", "test output"])
         assert "test output" in output
 
-    def test_run_with_dry_run(self, caplog):
-        """Test that dry_run mode doesn't execute commands."""
-        output = utils.run(["echo", "should not run"], dry_run=True)
-        assert output == ""
-
     def test_run_command_failure_raises_error(self):
         """Test that failed commands raise CalledProcessError."""
         with pytest.raises(subprocess.CalledProcessError):

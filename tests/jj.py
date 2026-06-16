@@ -23,12 +23,6 @@ class TestRun:
         assert output is not None
         assert isinstance(output, str)
 
-    def test_run_with_dry_run(self, tmp_jj_repo: Path, caplog):
-        """Test that dry_run mode doesn't execute commands."""
-        os.chdir(tmp_jj_repo)
-        output = jj.run("log", dry_run=True)
-        assert output == ""
-
     def test_run_invalid_command_raises_error(self, tmp_jj_repo: Path):
         """Test that invalid jj commands raise JjError."""
         os.chdir(tmp_jj_repo)

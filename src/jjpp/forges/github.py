@@ -28,7 +28,15 @@ class GitHub(Forge):
             log.info(f"Updating existing PR branch: {pr_branch}")
             with jj.with_new(changes[-1]):
                 jj.run("bookmark", "advance", pr_branch, "--to", changes[-1])
-                jj.run("git", "push", "--remote", self.remote, "--bookmark", pr_branch)
+                jj.run(
+                    "git",
+                    "push",
+                    "--remote",
+                    self.remote,
+                    "--bookmark",
+                    pr_branch,
+                    cap=False,
+                )
         else:
             # - create a new branch named "pr/<sanitized-title>" where
             #   <sanitized-title> is a name based on the description of
@@ -45,7 +53,15 @@ class GitHub(Forge):
             log.info(f"Creating new PR branch: {pr_branch}")
             with jj.with_new(changes[-1]):
                 jj.run("bookmark", "create", pr_branch, "-r", changes[-1])
-                jj.run("git", "push", "--remote", self.remote, "--bookmark", pr_branch)
+                jj.run(
+                    "git",
+                    "push",
+                    "--remote",
+                    self.remote,
+                    "--bookmark",
+                    pr_branch,
+                    cap=False,
+                )
                 base = utils.get_merge_target()
                 utils.run(
                     [

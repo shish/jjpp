@@ -2,7 +2,6 @@ import logging
 import os
 import shlex
 import shutil
-import subprocess
 import sys
 from contextlib import contextmanager
 from pathlib import Path
@@ -204,7 +203,7 @@ def _pre_commit_stack(ref: Optional[str]) -> None:
                 log.debug(f"Running {pc_cmd} on {change_id} ({shlex.join(files)})")
             try:
                 files = [f for f in files if Path(f).exists()]
-                subprocess.run([pc_cmd, "run", "--files", *files], check=True)
+                utils.run([pc_cmd, "run", "--files", *files], cap=False)
             except FileNotFoundError:
                 raise
             except Exception:
@@ -236,12 +235,12 @@ def pull_command(
     opts: GlobalOptions = ctx.obj
     r = opts.repo
     with r.with_chdir():
-        jj.run("git", "fetch", "--remote", r.forge.remote)
+        jj.run("git", "fetch", "--remote", r.forge.remote, cap=False)
         if all:
             range = "mutable()"
         else:
             range = "trunk()..@"
-        jj.run("rebase", "--skip-emptied", "-d", "trunk()", "-r", range)
+        jj.run("rebase", "--skip-emptied", "-d", "trunk()", "-r", range, cap=False)
 
 
 def run() -> None:

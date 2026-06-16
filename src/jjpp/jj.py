@@ -1,6 +1,7 @@
 import logging
 import subprocess
 from contextlib import contextmanager
+from typing import Literal, overload
 
 from . import utils
 
@@ -15,11 +16,23 @@ class JjError(Exception):
     pass
 
 
-def run(*args: str, dry_run: bool = False) -> str:
+@overload
+def run(*args: str, cap: Literal[True]) -> str: ...
+
+
+@overload
+def run(*args: str, cap: Literal[False]) -> None: ...
+
+
+@overload
+def run(*args: str) -> str: ...
+
+
+def run(*args: str, cap: bool = True) -> str | None:
     try:
-        return utils.run(["jj"] + list(args), dry_run=dry_run)
+        return utils.run(["jj"] + list(args), cap=cap)
     except subprocess.CalledProcessError as e:
-        raise JjError(f"jj command failed: {' '.join(args)}\n{e.stderr}") from e
+        raise JjError() from e
 
 
 def revset_to_changeid(revset: RevSet) -> ChangeID:

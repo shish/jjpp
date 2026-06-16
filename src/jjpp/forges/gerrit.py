@@ -17,7 +17,7 @@ class Gerrit(Forge):
         else:
             range = jj.closest_work()
         log.info(f"Pushing {range} to gerrit")
-        jj.run("gerrit", "upload", "-r", range)
+        jj.run("gerrit", "upload", "-r", range, cap=False)
 
     def checkout(self, identifier: str) -> None:
         log.info(f"Fetching Gerrit change {identifier}")

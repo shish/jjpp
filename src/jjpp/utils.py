@@ -1,6 +1,6 @@
 import logging
 import subprocess
-from typing import Optional
+from typing import Literal, Optional, overload
 
 log = logging.getLogger(__name__)
 
@@ -11,20 +11,39 @@ class UserError(Exception):
     pass
 
 
-def run(cmd: list[str], dry_run: bool = False) -> str:
-    if dry_run:
-        log.info(f"[DRY RUN] Would execute: {' '.join(cmd)}")
-        return ""
-    else:
-        log.debug(f"Executing command: {' '.join(cmd)}")
+@overload
+def run(cmd: list[str], cap: Literal[True]) -> str: ...
 
-    result = subprocess.run(
-        cmd,
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    return result.stdout.strip()
+
+@overload
+def run(cmd: list[str], cap: Literal[False]) -> None: ...
+
+
+@overload
+def run(cmd: list[str]) -> str: ...
+
+
+def run(cmd: list[str], cap: bool = True) -> str | None:
+    log.debug(f"Executing command: {' '.join(cmd)}")
+
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=cap,
+            text=True,
+            check=True,
+        )
+        if cap:
+            log.debug(f"Command output: {result.stdout.strip()}")
+            return result.stdout.strip()
+        else:
+            return None
+    except subprocess.CalledProcessError as e:
+        log.error(f"Command failed: {' '.join(cmd)}")
+        log.error(f"Return code: {e.returncode}")
+        log.error(f"stdout: {e.stdout}")
+        log.error(f"stderr: {e.stderr}")
+        raise
 
 
 def get_git_remote_url(remote_name: str = "origin") -> Optional[str]:

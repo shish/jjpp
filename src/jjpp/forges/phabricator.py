@@ -17,7 +17,7 @@ class Phabricator(Forge):
         for change_id in changes:
             with jj.with_new(change_id):
                 log.warning(f"[TODO] Pushing {change_id}")
-                utils.run(["arc", "diff", "HEAD^"])
+                utils.run(["arc", "diff", "HEAD^"], cap=False)
 
     def checkout(self, identifier: str) -> None:
         log.warning(f"[TODO] Checkout diff {identifier}")

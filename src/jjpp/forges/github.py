@@ -72,7 +72,9 @@ class GitHub(Forge):
             ]
         )
 
-    def list(self) -> None:
+    def list(self) -> list[CRListItem]:
+        from typing import List
+
         cmd = [
             "gh",
             "pr",
@@ -83,14 +85,17 @@ class GitHub(Forge):
             "number,title,state,url",
         ]
         prs = json.loads(utils.run(cmd))
-        crs = []
+        crs: List[CRListItem] = []
         for pr in prs:
             crs.append(
                 CRListItem(
+                    forge_name="GitHub",
+                    forge_url=self.forge_url,
+                    project_id=self.project_id,
                     identifier=str(pr["number"]),
                     title=pr["title"],
                     url=pr["url"],
                     extra={"state": pr["state"]},
                 )
             )
-        self.display_list(crs)
+        return crs

@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Optional
+from typing import List, Optional
 from urllib.request import urlopen
 
 from .. import jj, utils
@@ -39,7 +39,7 @@ class Gerrit(Forge):
         utils.run(["git", "fetch", self.remote, f"{current_rev}:{remote_id}"])
         utils.run(["git", "checkout", remote_id])
 
-    def list(self) -> None:
+    def list(self) -> List[CRListItem]:
         """List the user's open changes in Gerrit, showing any blockers."""
         log.info(f"Listing open changes from {self.forge_url}")
         # Query Gerrit REST API for current user's open changes
@@ -54,10 +54,9 @@ class Gerrit(Forge):
         changes = json.loads(result)
 
         if not changes:
-            print("No open changes found.")
-            return
+            return []
 
-        crs = []
+        crs: List[CRListItem] = []
         for change in changes:
             number = change.get("_number", "N/A")
             subject = change.get("subject", "N/A")
@@ -79,9 +78,12 @@ class Gerrit(Forge):
                         blockers.append(f"{label_name}: {blocker_name}")
 
             blocker_str = f" [{', '.join(blockers)}]" if blockers else ""
-            change_url = f"{self.forge_url}/c/{number}" if number != "N/A" else None
+            change_url = f"{self.forge_url}/c/{number}" if number != "N/A" else ""
             crs.append(
                 CRListItem(
+                    forge_name="Gerrit",
+                    forge_url=self.forge_url,
+                    project_id=self.project_id,
                     identifier=str(number),
                     title=subject,
                     url=change_url,
@@ -89,4 +91,4 @@ class Gerrit(Forge):
                 )
             )
 
-        self.display_list(crs)
+        return crs

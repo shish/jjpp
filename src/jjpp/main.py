@@ -1,12 +1,19 @@
 import logging
 import os
+import shlex
+import shutil
+import subprocess
 import sys
-from typing import Optional
+from pathlib import Path
+from typing import List, Optional
 
 import typer
+from rich.console import Console
+from rich.table import Table
 
 from . import jj, utils
 from .forges import Forge, get_forge
+from .forges.base import CRListItem
 
 app = typer.Typer(help="Unified CLI for multiple code review forges")
 log = logging.getLogger(__name__)
@@ -65,7 +72,7 @@ def push_command(
     opts: GlobalOptions = ctx.obj
     f = get_forge_or_die(opts)
     if pre_commit:
-        f.pre_commit_stack(ref)
+        _pre_commit_stack(ref)
     f.push(ref)
 
 
@@ -80,6 +87,33 @@ def checkout_command(
     f.checkout(identifier)
 
 
+def _display_list(items: List[CRListItem]) -> None:
+    """Display a list of code review items in a formatted table."""
+    console = Console()
+
+    all_extra_keys = set()
+    for item in items:
+        all_extra_keys.update(item.extra.keys())
+
+    table = Table()
+    table.add_column("ID", style="cyan")
+    table.add_column("Title", style="magenta")
+    for key in sorted(all_extra_keys):
+        table.add_column(key.title(), style="yellow")
+
+    for item in items:
+        table.add_row(
+            item.identifier,
+            f"[link={item.url}]{item.title}[/link]",
+            *[
+                item.extra[key] if key in item.extra else ""
+                for key in sorted(all_extra_keys)
+            ],
+        )
+
+    console.print(table)
+
+
 @app.command("list")
 def list_command(
     ctx: typer.Context,
@@ -87,7 +121,51 @@ def list_command(
     """List items on the forge."""
     opts: GlobalOptions = ctx.obj
     f = get_forge_or_die(opts)
-    f.list()
+    items = f.list()
+    if items:
+        _display_list(items)
+    else:
+        print("No items found.")
+
+
+def _pre_commit_stack(ref: Optional[str]) -> None:
+    """Run pre-commit hooks on a stack of changes."""
+    if not Path(".git/hooks/pre-commit").exists():
+        log.info("No .git/hooks/pre-commit found, skipping pre-commit hooks")
+        return
+
+    pc_cmd = None
+    for cmd in ["prek", "pre-commit"]:
+        if shutil.which(cmd):
+            pc_cmd = cmd
+            break
+    if not pc_cmd:
+        log.info("No pre-commit command found, skipping pre-commit hooks")
+        return
+
+    changes = (
+        [jj.revset_to_changeid(ref)]
+        if ref
+        else jj.current_stack(require_description=False)
+    )
+    log.debug("Pre-commit checking all changes in the stack")
+    for change_id in changes:
+        with jj.with_edit(change_id):
+            files = jj.files_in(change_id)
+            descr = (jj.description_of(change_id).splitlines() or ["(untitled)"])[0]
+            if ref is None:
+                print("=" * 80)
+                print(f'Running {pc_cmd} on "{descr}" ({change_id})')
+                print(f"Affected files: {shlex.join(files)}")
+            else:
+                log.debug(f"Running {pc_cmd} on {change_id} ({shlex.join(files)})")
+            try:
+                files = [f for f in files if Path(f).exists()]
+                subprocess.run([pc_cmd, "run", "--files", *files], check=True)
+            except FileNotFoundError:
+                raise
+            except Exception:
+                raise utils.UserError(f"Pre-commit failed for change {change_id}")
 
 
 @app.command("pre-commit")
@@ -96,9 +174,7 @@ def pre_commit_command(
     ref: Optional[str] = typer.Argument(None, help="Ref to check"),
 ) -> None:
     """Run pre-commit hooks."""
-    opts: GlobalOptions = ctx.obj
-    f = get_forge_or_die(opts)
-    f.pre_commit_stack(ref)
+    _pre_commit_stack(ref)
 
 
 @app.command("pull")

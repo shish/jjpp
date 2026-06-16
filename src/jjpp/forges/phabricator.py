@@ -1,8 +1,8 @@
 import logging
-from typing import Optional
+from typing import List, Optional
 
 from .. import jj, utils
-from .base import Forge
+from .base import CRListItem, Forge
 
 log = logging.getLogger(__name__)
 
@@ -22,5 +22,6 @@ class Phabricator(Forge):
     def checkout(self, identifier: str) -> None:
         log.warning(f"[TODO] Checkout diff {identifier}")
 
-    def list(self) -> None:
+    def list(self) -> List[CRListItem]:
         log.warning("[TODO] Listing diffs")
+        return []

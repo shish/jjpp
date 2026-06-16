@@ -49,6 +49,7 @@ def tmp_jj_repo() -> Generator[Path, None, None]:
         run_cmd("git", "init")
         run_cmd("git", "config", "user.email", "test@example.com")
         run_cmd("git", "config", "user.name", "Test User")
+        run_cmd("git", "branch", "-m", "main")
         # Initialize jj repo using git backend
         run_cmd("jj", "git", "init", ".")
         yield Path(tmp_dir)

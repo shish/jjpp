@@ -85,7 +85,10 @@ class Forge(ABC):
 
     @abstractmethod
     def push(
-        self, ref: Optional[str], draft: bool = False, message: Optional[str] = None
+        self,
+        ref: Optional[str],
+        draft: bool = False,
+        message: Optional[str] = None,
     ) -> None:
         """Push changes to the forge."""
 

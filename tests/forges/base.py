@@ -10,7 +10,10 @@ log = logging.getLogger(__name__)
 
 class DummyForge(Forge):
     def push(
-        self, ref: Optional[str], draft: bool = False, message: Optional[str] = None
+        self,
+        ref: Optional[str],
+        draft: bool = False,
+        message: Optional[str] = None,
     ) -> None:
         log.info(f"DummyForge: push called with ref={ref}")
 

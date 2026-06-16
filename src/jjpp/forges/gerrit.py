@@ -58,7 +58,7 @@ class Gerrit(Forge):
                 result = response.read().decode("utf-8")
         except HTTPError as e:
             if e.code == 401:
-                log.error(
+                raise utils.UserError(
                     f"Authentication failed for {url}. Check your netrc credentials."
                 )
             raise
@@ -69,12 +69,15 @@ class Gerrit(Forge):
         try:
             result = json.loads(result)
         except json.JSONDecodeError as e:
-            log.error(f"Failed to parse JSON response from {url} ({result[:20]}): {e}")
+            log.error(f"Failed to parse JSON from {url} ({result[:20]!r}): {e}")
             raise
         return result
 
     def push(
-        self, ref: Optional[str], draft: bool = False, message: Optional[str] = None
+        self,
+        ref: Optional[str],
+        draft: bool = False,
+        message: Optional[str] = None,
     ) -> None:
         if ref:
             change_id = jj.revset_to_changeid(ref)
@@ -140,7 +143,7 @@ class Gerrit(Forge):
                     title=change["subject"],
                     url=f"{self.forge_url}/c/{change['_number']}",
                     extra={
-                        "status": change["status"],
+                        "state": change["status"],
                         "blockers": ", ".join(blockers),
                     },
                 )

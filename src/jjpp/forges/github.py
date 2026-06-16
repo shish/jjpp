@@ -11,7 +11,10 @@ log = logging.getLogger(__name__)
 
 class GitHub(Forge):
     def push(
-        self, ref: Optional[str], draft: bool = False, message: Optional[str] = None
+        self,
+        ref: Optional[str],
+        draft: bool = False,
+        message: Optional[str] = None,
     ) -> None:
         changes = (
             [jj.revset_to_changeid(ref)]
@@ -111,11 +114,17 @@ class GitHub(Forge):
         ]
         prs = json.loads(utils.run(cmd))
         crs: list[CRListItem] = []
+        c2c = {
+            "SUCCESS": "normal",
+            "FAILURE": "red",
+            "PENDING": "yellow",
+            "": "normal",
+        }
         for pr in prs:
             # Merge status checks into a blockers string
             checks = pr.get("statusCheckRollup", [])
             blockers = ", ".join(
-                f"{check['name']}: [link={check['detailsUrl']}]{check['conclusion']}[/link]"
+                f"[{c2c.get(check['conclusion'], 'normal')}][link={check['detailsUrl']}]{check['name']}[/link][/]"
                 for check in checks
                 if check.get("conclusion") != "SUCCESS"
             )

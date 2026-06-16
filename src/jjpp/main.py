@@ -22,15 +22,15 @@ log = logging.getLogger(__name__)
 class Repo:
     def __init__(self, spec: str):
         # spec = /path/to/repo:remote:forge where remote and forge are optional
+        # eg ~/Projects/jjpp:origin
         parts = spec.split(":")
         self.path = Path(parts[0]).resolve()
         remote = parts[1] if len(parts) > 1 else "origin"
         forge_type = parts[2] if len(parts) > 2 else None
-        forge = get_forge(forge_type, remote)
+        with self.with_chdir():
+            forge = get_forge(forge_type, remote)
         if forge is None:
-            log.error(
-                f"Could not determine forge for remote '{remote}' in repo '{self.path}'"
-            )
+            log.error(f"Could not determine forge for remote {remote!r} in {self.path}")
             raise typer.Exit(code=1)
         self.forge = forge
 
@@ -101,7 +101,7 @@ def push_command(
         help="Commit/PR message",
     ),
 ) -> None:
-    """Push changes to the forge."""
+    """Push current branch to the forge."""
     opts: GlobalOptions = ctx.obj
     r = opts.repo
     with r.with_chdir():
@@ -110,12 +110,33 @@ def push_command(
         r.forge.push(ref, draft=draft, message=message)
 
 
+@app.command("pull")
+def pull_command(
+    ctx: typer.Context,
+    all: bool = typer.Option(
+        False,
+        "--all",
+        help="Rebase all local branches; if not set, only rebase the current branch",
+    ),
+) -> None:
+    """Pull from remote and rebase current branch."""
+    opts: GlobalOptions = ctx.obj
+    r = opts.repo
+    with r.with_chdir():
+        jj.run("git", "fetch", "--remote", r.forge.remote, cap=False)
+        if all:
+            range = "mutable()"
+        else:
+            range = "trunk()..@"
+        jj.run("rebase", "--skip-emptied", "-d", "trunk()", "-r", range, cap=False)
+
+
 @app.command("checkout")
 def checkout_command(
     ctx: typer.Context,
     identifier: str = typer.Argument(None, help="PR/Diff/CR ID"),
 ) -> None:
-    """Checkout changes from the forge."""
+    """Check out changes from the forge."""
     opts: GlobalOptions = ctx.obj
     r = opts.repo
     with r.with_chdir():
@@ -176,7 +197,7 @@ def list_command(
         with r.with_chdir():
             items.extend(r.forge.list(all_projects))
     if items:
-        _display_list(items, multi=all_projects)
+        _display_list(items, multi=all_projects or len(opts.repos) > 1)
     else:
         print("No items found.")
 
@@ -231,27 +252,6 @@ def pre_commit_command(
     r = opts.repo
     with r.with_chdir():
         _pre_commit_stack(ref)
-
-
-@app.command("pull")
-def pull_command(
-    ctx: typer.Context,
-    all: bool = typer.Option(
-        False,
-        "--all",
-        help="Rebase all local branches; if not set, only rebase the current branch",
-    ),
-) -> None:
-    """Pull from remote and rebase local branches"""
-    opts: GlobalOptions = ctx.obj
-    r = opts.repo
-    with r.with_chdir():
-        jj.run("git", "fetch", "--remote", r.forge.remote, cap=False)
-        if all:
-            range = "mutable()"
-        else:
-            range = "trunk()..@"
-        jj.run("rebase", "--skip-emptied", "-d", "trunk()", "-r", range, cap=False)
 
 
 def run() -> None:

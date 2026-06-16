@@ -10,14 +10,21 @@ log = logging.getLogger(__name__)
 
 
 class Gerrit(Forge):
-    def push(self, ref: Optional[str]) -> None:
+    def push(
+        self, ref: Optional[str], draft: bool = False, message: Optional[str] = None
+    ) -> None:
         if ref:
             change_id = jj.revset_to_changeid(ref)
             range = f"{change_id}::{change_id}"
         else:
             range = jj.closest_work()
         log.info(f"Pushing {range} to gerrit")
-        jj.run("gerrit", "upload", "-r", range, cap=False)
+        args = ["gerrit", "upload", "-r", range]
+        if draft:
+            args.append("--wip")
+        if message:
+            args.extend(["--message", message])
+        jj.run(*args, cap=False)
 
     def checkout(self, identifier: str) -> None:
         log.info(f"Fetching Gerrit change {identifier}")

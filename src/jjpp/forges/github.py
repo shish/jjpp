@@ -10,7 +10,9 @@ log = logging.getLogger(__name__)
 
 
 class GitHub(Forge):
-    def push(self, ref: Optional[str]) -> None:
+    def push(
+        self, ref: Optional[str], draft: bool = False, message: Optional[str] = None
+    ) -> None:
         changes = (
             [jj.revset_to_changeid(ref)]
             if ref
@@ -63,18 +65,21 @@ class GitHub(Forge):
                     cap=False,
                 )
                 base = utils.get_merge_target()
-                utils.run(
-                    [
-                        "gh",
-                        "pr",
-                        "create",
-                        "--fill",
-                        "--head",
-                        pr_branch,
-                        "--base",
-                        base,
-                    ]
-                )
+                args = [
+                    "gh",
+                    "pr",
+                    "create",
+                    "--fill",
+                    "--head",
+                    pr_branch,
+                    "--base",
+                    base,
+                ]
+                if draft:
+                    args.append("--draft")
+                if message:
+                    args.extend(["-b", message])
+                utils.run(args)
 
     def checkout(self, identifier: str) -> None:
         log.info(f"Checking out PR {identifier} from {self.remote_url}")

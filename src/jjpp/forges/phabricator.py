@@ -8,7 +8,9 @@ log = logging.getLogger(__name__)
 
 
 class Phabricator(Forge):
-    def push(self, ref: Optional[str]) -> None:
+    def push(
+        self, ref: Optional[str], draft: bool = False, message: Optional[str] = None
+    ) -> None:
         changes = (
             [jj.revset_to_changeid(ref)]
             if ref
@@ -17,7 +19,12 @@ class Phabricator(Forge):
         for change_id in changes:
             with jj.with_new(change_id):
                 log.warning(f"[TODO] Pushing {change_id}")
-                utils.run(["arc", "diff", "HEAD^"], cap=False)
+                args = ["arc", "diff", "HEAD^"]
+                if draft:
+                    args.append("--draft")
+                if message:
+                    args.extend(["--message", message])
+                utils.run(args, cap=False)
 
     def checkout(self, identifier: str) -> None:
         log.warning(f"[TODO] Checkout diff {identifier}")

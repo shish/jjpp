@@ -1,6 +1,7 @@
 """Tests for jjpp.forge module."""
 
 import logging
+from typing import Optional
 
 from jjpp.forges.base import CRListItem, Forge
 
@@ -8,7 +9,9 @@ log = logging.getLogger(__name__)
 
 
 class DummyForge(Forge):
-    def push(self, ref: str | None) -> None:
+    def push(
+        self, ref: Optional[str], draft: bool = False, message: Optional[str] = None
+    ) -> None:
         log.info(f"DummyForge: push called with ref={ref}")
 
     def checkout(self, identifier: str) -> None:

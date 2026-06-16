@@ -89,6 +89,17 @@ def push_command(
         "--pre-commit/--no-pre-commit",
         help="Run or skip pre-commit hooks",
     ),
+    draft: bool = typer.Option(
+        False,
+        "--draft",
+        help="Create as a draft/WIP",
+    ),
+    message: Optional[str] = typer.Option(
+        None,
+        "-m",
+        "--message",
+        help="Commit/PR message",
+    ),
 ) -> None:
     """Push changes to the forge."""
     opts: GlobalOptions = ctx.obj
@@ -96,7 +107,7 @@ def push_command(
     with r.with_chdir():
         if pre_commit:
             _pre_commit_stack(ref)
-        r.forge.push(ref)
+        r.forge.push(ref, draft=draft, message=message)
 
 
 @app.command("checkout")

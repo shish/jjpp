@@ -41,12 +41,17 @@ def main(
         help="Specify the forge (auto-detects from git remote if not provided)",
     ),
     remote: str = typer.Option("origin", "--remote", help="Git remote to use"),
-    verbose: bool = typer.Option(
-        False, "--verbose", "-v", help="Enable verbose output"
+    verbose: int = typer.Option(
+        0,
+        "--verbose",
+        "-v",
+        help="Increase verbosity (-v for INFO, -vv for DEBUG)",
+        count=True,
     ),
 ) -> None:
     """Integrate JJ with multiple code review forges."""
-    logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO)
+    log_level = [logging.WARNING, logging.INFO, logging.DEBUG][min(verbose, 2)]
+    logging.basicConfig(level=log_level)
 
     try:
         jj_root = jj.run("root")

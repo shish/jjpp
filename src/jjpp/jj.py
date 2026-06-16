@@ -16,18 +16,6 @@ class JjError(Exception):
 
 
 def run(*args: str, dry_run: bool = False) -> str:
-    """Run a jj command and return stdout.
-
-    Args:
-        *args: Arguments to pass to jj command.
-        dry_run: If True, log the command without executing it.
-
-    Returns:
-        The stdout output of the jj command, or empty string if dry_run=True.
-
-    Raises:
-        JjError: If the jj command fails or is not found.
-    """
     try:
         return utils.run(["jj"] + list(args), dry_run=dry_run)
     except subprocess.CalledProcessError as e:

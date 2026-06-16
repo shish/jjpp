@@ -25,7 +25,7 @@ class GitHub(Forge):
             # - advance that branch to the current change
             # - force-push the branch to the remote
             pr_branch = branches[-1]
-            log.info(f"Found existing PR branch: {pr_branch}")
+            log.info(f"Updating existing PR branch: {pr_branch}")
             with jj.with_new(changes[-1]):
                 jj.run("bookmark", "advance", pr_branch, "--to", changes[-1])
                 jj.run("git", "push", "--remote", self.remote, "--bookmark", pr_branch)
@@ -61,6 +61,7 @@ class GitHub(Forge):
                 )
 
     def checkout(self, identifier: str) -> None:
+        log.info(f"Checking out PR {identifier} from {self.remote_url}")
         utils.run(
             [
                 "gh",
@@ -73,8 +74,7 @@ class GitHub(Forge):
         )
 
     def list(self) -> list[CRListItem]:
-        from typing import List
-
+        log.info(f"Listing PRs for {self.remote_url}")
         cmd = [
             "gh",
             "pr",
@@ -85,7 +85,7 @@ class GitHub(Forge):
             "number,title,state,url",
         ]
         prs = json.loads(utils.run(cmd))
-        crs: List[CRListItem] = []
+        crs: list[CRListItem] = []
         for pr in prs:
             crs.append(
                 CRListItem(

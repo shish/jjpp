@@ -36,14 +36,8 @@ def get_git_remote_url(remote_name: str = "origin") -> Optional[str]:
 
 
 def get_merge_target(remote: str = "origin") -> str:
-    result = subprocess.run(
-        ["git", "ls-remote", "--symref", remote, "HEAD"],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
     # Output format: ref: refs/heads/main	HEAD
-    output = result.stdout.strip()
+    output = run(["git", "ls-remote", "--symref", remote, "HEAD"])
     if output.startswith("ref:"):
         # Extract the branch name from "ref: refs/heads/main	HEAD"
         ref_path = output.split()[1]  # "refs/heads/main"

@@ -13,9 +13,11 @@ class Gerrit(Forge):
     def push(self, ref: Optional[str]) -> None:
         if ref:
             change_id = jj.revset_to_changeid(ref)
-            jj.run("gerrit", "upload", "-r", f"{change_id}::{change_id}")
+            range = f"{change_id}::{change_id}"
         else:
-            jj.run("gerrit", "upload", "-r", jj.closest_work())
+            range = jj.closest_work()
+        log.info(f"Pushing {range} to gerrit")
+        jj.run("gerrit", "upload", "-r", range)
 
     def checkout(self, identifier: str) -> None:
         log.info(f"Fetching Gerrit change {identifier}")

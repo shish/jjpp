@@ -55,9 +55,9 @@ class TestDetectForgeFromUrl:
 class TestGetForge:
     """Tests for utils.get_forge() function."""
 
-    def test_get_forge_explicit(self, git_repo_with_remote: tuple[Path, Path]):
+    def test_get_forge_explicit(self, repo_with_remote: tuple[Path, Path]):
         """Test getting forge with explicit specification."""
-        local_repo, remote_repo = git_repo_with_remote
+        local_repo, remote_repo = repo_with_remote
         os.chdir(local_repo)
 
         # Add GitHub URL as remote
@@ -75,11 +75,9 @@ class TestGetForge:
         assert forge is not None
         assert forge.__class__.__name__ == "Phabricator"
 
-    def test_get_forge_auto_detect_github(
-        self, git_repo_with_remote: tuple[Path, Path]
-    ):
+    def test_get_forge_auto_detect_github(self, repo_with_remote: tuple[Path, Path]):
         """Test auto-detecting GitHub forge."""
-        local_repo, remote_repo = git_repo_with_remote
+        local_repo, remote_repo = repo_with_remote
         os.chdir(local_repo)
 
         # Add GitHub URL as origin
@@ -90,15 +88,15 @@ class TestGetForge:
         assert forge is not None
         assert forge.__class__.__name__ == "GitHub"
 
-    def test_get_forge_nonexistent_remote(self, tmp_jj_repo: Path):
+    def test_get_forge_nonexistent_remote(self, tmp_repo: Path):
         """Test that nonexistent remote returns None."""
-        os.chdir(tmp_jj_repo)
+        os.chdir(tmp_repo)
         forge = forges.get_forge(None, "nonexistent")
         assert forge is None
 
-    def test_get_forge_no_auto_detect_no_forge_specified(self, tmp_jj_repo: Path):
+    def test_get_forge_no_auto_detect_no_forge_specified(self, tmp_repo: Path):
         """Test that unknown URL without explicit forge returns None."""
-        os.chdir(tmp_jj_repo)
+        os.chdir(tmp_repo)
         run_cmd("git", "remote", "add", "origin", "https://unknown.example.com/repo")
 
         forge = forges.get_forge(None, "origin")

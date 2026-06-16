@@ -38,11 +38,9 @@ class TestRun:
 class TestGetMergeTarget:
     """Tests for utils.get_merge_target() function."""
 
-    def test_get_merge_target_with_remote(
-        self, git_repo_with_remote: tuple[Path, Path]
-    ):
+    def test_get_merge_target_with_remote(self, repo_with_remote: tuple[Path, Path]):
         """Test getting merge target from remote."""
-        local_repo, remote_repo = git_repo_with_remote
+        local_repo, remote_repo = repo_with_remote
         os.chdir(local_repo)
 
         # Git HEAD symref should point to main
@@ -50,18 +48,18 @@ class TestGetMergeTarget:
         assert "refs/heads/main" in result
 
     def test_get_merge_target_parses_correctly(
-        self, git_repo_with_remote: tuple[Path, Path]
+        self, repo_with_remote: tuple[Path, Path]
     ):
         """Test that get_merge_target parses symref correctly."""
-        local_repo, remote_repo = git_repo_with_remote
+        local_repo, remote_repo = repo_with_remote
         os.chdir(local_repo)
 
         target = utils.get_merge_target("origin")
         assert target == "main"
 
-    def test_get_merge_target_invalid_remote(self, tmp_jj_repo: Path):
+    def test_get_merge_target_invalid_remote(self, tmp_repo: Path):
         """Test that invalid remote raises exception."""
-        os.chdir(tmp_jj_repo)
+        os.chdir(tmp_repo)
         with pytest.raises(Exception):
             utils.get_merge_target("nonexistent")
 
@@ -70,27 +68,27 @@ class TestGetGitRemoteUrl:
     """Tests for utils.get_git_remote_url() function."""
 
     def test_get_git_remote_url_with_configured_remote(
-        self, git_repo_with_remote: tuple[Path, Path]
+        self, repo_with_remote: tuple[Path, Path]
     ):
         """Test getting URL of configured remote."""
-        local_repo, remote_repo = git_repo_with_remote
+        local_repo, remote_repo = repo_with_remote
         os.chdir(local_repo)
 
         url = utils.get_git_remote_url("origin")
         assert url is not None
         assert str(remote_repo) in url
 
-    def test_get_git_remote_url_nonexistent_remote(self, tmp_jj_repo: Path):
+    def test_get_git_remote_url_nonexistent_remote(self, tmp_repo: Path):
         """Test getting URL of non-existent remote returns None."""
-        os.chdir(tmp_jj_repo)
+        os.chdir(tmp_repo)
         url = utils.get_git_remote_url("nonexistent")
         assert url is None
 
     def test_get_git_remote_url_default_remote(
-        self, git_repo_with_remote: tuple[Path, Path]
+        self, repo_with_remote: tuple[Path, Path]
     ):
         """Test getting default 'origin' remote URL."""
-        local_repo, remote_repo = git_repo_with_remote
+        local_repo, remote_repo = repo_with_remote
         os.chdir(local_repo)
 
         url = utils.get_git_remote_url()
@@ -100,17 +98,15 @@ class TestGetGitRemoteUrl:
 class TestUniqueBranchName:
     """Tests for utils.unique_branch_name() function."""
 
-    def test_unique_branch_name_non_existent(self, tmp_jj_repo: Path):
+    def test_unique_branch_name_non_existent(self, tmp_repo: Path):
         """Test generating unique name for non-existent branch."""
-        os.chdir(tmp_jj_repo)
+        os.chdir(tmp_repo)
         name = utils.unique_branch_name("new-branch")
         assert name == "new-branch"
 
-    def test_unique_branch_name_existing_appends_number(
-        self, git_repo_with_commits: Path
-    ):
+    def test_unique_branch_name_existing_appends_number(self, repo_with_commits: Path):
         """Test that existing branch names get numbers appended."""
-        os.chdir(git_repo_with_commits)
+        os.chdir(repo_with_commits)
 
         # Create a branch
         run_cmd("git", "checkout", "-b", "feature")
@@ -119,9 +115,9 @@ class TestUniqueBranchName:
         name = utils.unique_branch_name("feature")
         assert name == "feature-1"
 
-    def test_unique_branch_name_multiple_existing(self, git_repo_with_commits: Path):
+    def test_unique_branch_name_multiple_existing(self, repo_with_commits: Path):
         """Test with multiple existing branches with same base name."""
-        os.chdir(git_repo_with_commits)
+        os.chdir(repo_with_commits)
 
         # Create multiple branches
         run_cmd("git", "checkout", "-b", "feature")
@@ -132,11 +128,9 @@ class TestUniqueBranchName:
         # Should skip feature-1 and go to feature-2
         assert name == "feature-2"
 
-    def test_unique_branch_name_incrementally_finds_gap(
-        self, git_repo_with_commits: Path
-    ):
+    def test_unique_branch_name_incrementally_finds_gap(self, repo_with_commits: Path):
         """Test that unique_branch_name finds first available number."""
-        os.chdir(git_repo_with_commits)
+        os.chdir(repo_with_commits)
 
         # Create branches
         run_cmd("git", "checkout", "-b", "test")

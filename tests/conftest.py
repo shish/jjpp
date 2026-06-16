@@ -34,7 +34,7 @@ def run_cmd(*args: str, cwd: Union[str, None] = None, text: bool = True) -> str:
 
 
 @pytest.fixture
-def tmp_jj_repo() -> Generator[Path, None, None]:
+def tmp_repo() -> Generator[Path, None, None]:
     """Create a temporary jj (Jujutsu) repository with git backend.
 
     Yields:
@@ -59,7 +59,7 @@ def tmp_jj_repo() -> Generator[Path, None, None]:
 
 
 @pytest.fixture
-def jj_repo_with_commits(tmp_jj_repo: Path) -> Generator[Path, None, None]:
+def repo_with_commits(tmp_repo: Path) -> Generator[Path, None, None]:
     """Create a jj repository with initial commits and branches.
 
     Creates:
@@ -72,52 +72,31 @@ def jj_repo_with_commits(tmp_jj_repo: Path) -> Generator[Path, None, None]:
     original_dir = os.getcwd()
 
     try:
-        os.chdir(tmp_jj_repo)
+        os.chdir(tmp_repo)
 
         # Create initial commit - jj auto-tracks changes
         Path("file1.txt").write_text("initial content")
         run_cmd("jj", "commit", "-m", "Initial commit")
-        log.debug(
-            "Commit 0: "
-            + run_cmd("jj", "log", "-r", "@-", "--no-graph", "-T", "change_id.short()")
-        )
 
         # Create commit 1
         Path("file2.txt").write_text("commit 1 content")
         run_cmd("jj", "commit", "-m", "Commit 1")
-        log.debug(
-            "Commit 1: "
-            + run_cmd("jj", "log", "-r", "@-", "--no-graph", "-T", "change_id.short()")
-        )
 
         # Create commit 2
         Path("file3.txt").write_text("commit 2 content")
         run_cmd("jj", "commit", "-m", "Commit 2")
-        log.debug(
-            "Commit 2: "
-            + run_cmd("jj", "log", "-r", "@-", "--no-graph", "-T", "change_id.short()")
-        )
 
         # Create commit 3
         Path("file4.txt").write_text("commit 3 content")
         run_cmd("jj", "commit", "-m", "Commit 3")
-        log.debug(
-            "Commit 3: "
-            + run_cmd("jj", "log", "-r", "@-", "--no-graph", "-T", "change_id.short()")
-        )
 
-        log.debug(
-            "Commit N: "
-            + run_cmd("jj", "log", "-r", "@", "--no-graph", "-T", "change_id.short()")
-        )
-
-        yield tmp_jj_repo
+        yield tmp_repo
     finally:
         os.chdir(original_dir)
 
 
 @pytest.fixture
-def jj_repo_with_branches(tmp_jj_repo: Path) -> Generator[Path, None, None]:
+def repo_with_branches(tmp_repo: Path) -> Generator[Path, None, None]:
     """Create a jj repository with commits and bookmarks (branches).
 
     Creates:
@@ -131,7 +110,7 @@ def jj_repo_with_branches(tmp_jj_repo: Path) -> Generator[Path, None, None]:
     original_dir = os.getcwd()
 
     try:
-        os.chdir(tmp_jj_repo)
+        os.chdir(tmp_repo)
 
         # Create initial commit
         Path("base.txt").write_text("base content")
@@ -153,76 +132,14 @@ def jj_repo_with_branches(tmp_jj_repo: Path) -> Generator[Path, None, None]:
         run_cmd("jj", "commit", "-m", "Feature 2")
         run_cmd("jj", "bookmark", "create", "feature-2")
 
-        yield tmp_jj_repo
+        yield tmp_repo
     finally:
         os.chdir(original_dir)
 
 
 @pytest.fixture
-def jj_repo_with_empty_commit(tmp_jj_repo: Path) -> Generator[Path, None, None]:
-    """Create a jj repository with an empty commit.
-
-    Creates:
-    - Initial commit
-    - One empty commit
-
-    Yields:
-        Path to the jj repository with empty commit.
-    """
-    original_dir = os.getcwd()
-
-    try:
-        os.chdir(tmp_jj_repo)
-
-        # Create initial commit
-        Path("file.txt").write_text("initial")
-        run_cmd("jj", "commit", "-m", "Initial")
-
-        # Create empty commit
-        run_cmd("jj", "commit", "-m", "Empty commit")
-
-        yield tmp_jj_repo
-    finally:
-        os.chdir(original_dir)
-
-
-@pytest.fixture
-def git_repo_with_commits(tmp_jj_repo: Path) -> Generator[Path, None, None]:
-    """Create a git repository with some commits.
-
-    Creates:
-    - Initial commit on main
-    - 2 additional commits
-
-    Yields:
-        Path to the git repository with commits.
-    """
-    original_dir = os.getcwd()
-
-    try:
-        os.chdir(tmp_jj_repo)
-
-        # Create initial commit
-        Path("file1.txt").write_text("initial content")
-        run_cmd("git", "add", "file1.txt")
-        run_cmd("git", "commit", "-m", "Initial commit")
-
-        # Create second commit
-        Path("file2.txt").write_text("second content")
-        run_cmd("git", "add", "file2.txt")
-        run_cmd("git", "commit", "-m", "Second commit")
-
-        # Set main as default branch
-        run_cmd("git", "symbolic-ref", "HEAD", "refs/heads/main")
-
-        yield tmp_jj_repo
-    finally:
-        os.chdir(original_dir)
-
-
-@pytest.fixture
-def git_repo_with_remote(
-    tmp_jj_repo: Path,
+def repo_with_remote(
+    tmp_repo: Path,
 ) -> Generator[tuple[Path, Path], None, None]:
     """Create a git repository with a configured remote.
 
@@ -242,9 +159,10 @@ def git_repo_with_remote(
         remote_dir = tempfile.mkdtemp(prefix="jjpp_remote_")
         os.chdir(remote_dir)
         run_cmd("git", "init", "--bare")
+        run_cmd("git", "symbolic-ref", "HEAD", "refs/heads/main")
 
         # Configure local repo with remote
-        os.chdir(tmp_jj_repo)
+        os.chdir(tmp_repo)
         run_cmd("git", "remote", "add", "origin", remote_dir)
 
         # Create and push initial commit
@@ -253,7 +171,7 @@ def git_repo_with_remote(
         run_cmd("git", "commit", "-m", "Initial")
         run_cmd("git", "push", "-u", "origin", "main")
 
-        yield (tmp_jj_repo, Path(remote_dir))
+        yield (tmp_repo, Path(remote_dir))
     finally:
         os.chdir(original_dir)
         if remote_dir:

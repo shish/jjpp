@@ -110,7 +110,7 @@ class GitHub(Forge):
             # Merge status checks into a blockers string
             checks = pr.get("statusCheckRollup", [])
             blockers = ", ".join(
-                f"{check['name']}: {check['conclusion']}"
+                f"{check['name']}: [link={check['detailsUrl']}]{check['conclusion']}[/link]"
                 for check in checks
                 if check.get("conclusion") != "SUCCESS"
             )

@@ -4,6 +4,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+from contextlib import contextmanager
 from pathlib import Path
 from typing import List, Optional
 
@@ -12,35 +13,57 @@ from rich.console import Console
 from rich.table import Table
 
 from . import jj, utils
-from .forges import Forge, get_forge
+from .forges import get_forge
 from .forges.base import CRListItem
 
 app = typer.Typer(help="Unified CLI for multiple code review forges")
 log = logging.getLogger(__name__)
 
 
-class GlobalOptions:
-    def __init__(self, forge: Optional[str] = None, remote: str = "origin"):
+class Repo:
+    def __init__(self, spec: str):
+        # spec = /path/to/repo:remote:forge where remote and forge are optional
+        parts = spec.split(":")
+        self.path = Path(parts[0]).resolve()
+        remote = parts[1] if len(parts) > 1 else "origin"
+        forge_type = parts[2] if len(parts) > 2 else None
+        forge = get_forge(forge_type, remote)
+        if forge is None:
+            log.error(
+                f"Could not determine forge for remote '{remote}' in repo '{self.path}'"
+            )
+            raise typer.Exit(code=1)
         self.forge = forge
-        self.remote = remote
+
+    @contextmanager
+    def with_chdir(self):
+        """Context manager to temporarily change the working directory."""
+        original_dir = Path.cwd()
+        try:
+            os.chdir(self.path)
+            yield
+        finally:
+            os.chdir(original_dir)
 
 
-def get_forge_or_die(opts: GlobalOptions) -> Forge:
-    forge = get_forge(opts.forge, opts.remote)
-    if forge is None:
-        raise typer.Exit(code=1)
-    return forge
+class GlobalOptions:
+    def __init__(self, repos: list[Repo]) -> None:
+        self.repos = repos
+
+    @property
+    def repo(self) -> Repo:
+        if len(self.repos) == 1:
+            return self.repos[0]
+        elif len(self.repos) == 0:
+            raise utils.UserError("No repositories specified.")
+        else:
+            raise utils.UserError("Too many repositories specified.")
 
 
 @app.callback(invoke_without_command=False)
 def main(
     ctx: typer.Context,
-    forge: Optional[str] = typer.Option(
-        None,
-        "--forge",
-        help="Specify the forge (auto-detects from git remote if not provided)",
-    ),
-    remote: str = typer.Option("origin", "--remote", help="Git remote to use"),
+    repos: list[str] = typer.Option([], "--repo"),
     verbose: int = typer.Option(
         0,
         "--verbose",
@@ -53,14 +76,9 @@ def main(
     log_level = [logging.WARNING, logging.INFO, logging.DEBUG][min(verbose, 2)]
     logging.basicConfig(level=log_level)
 
-    try:
-        jj_root = jj.run("root")
-        os.chdir(jj_root)
-    except jj.JjError as e:
-        typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(code=1)
+    repo_objs = [Repo(spec) for spec in repos] or [Repo(jj.run("root"))]
 
-    ctx.obj = GlobalOptions(forge=forge, remote=remote)
+    ctx.obj = GlobalOptions(repo_objs)
 
 
 @app.command("push")
@@ -75,10 +93,11 @@ def push_command(
 ) -> None:
     """Push changes to the forge."""
     opts: GlobalOptions = ctx.obj
-    f = get_forge_or_die(opts)
-    if pre_commit:
-        _pre_commit_stack(ref)
-    f.push(ref)
+    r = opts.repo
+    with r.with_chdir():
+        if pre_commit:
+            _pre_commit_stack(ref)
+        r.forge.push(ref)
 
 
 @app.command("checkout")
@@ -88,8 +107,9 @@ def checkout_command(
 ) -> None:
     """Checkout changes from the forge."""
     opts: GlobalOptions = ctx.obj
-    f = get_forge_or_die(opts)
-    f.checkout(identifier)
+    r = opts.repo
+    with r.with_chdir():
+        r.forge.checkout(identifier)
 
 
 def _display_list(items: List[CRListItem]) -> None:
@@ -125,12 +145,13 @@ def list_command(
 ) -> None:
     """List items on the forge."""
     opts: GlobalOptions = ctx.obj
-    f = get_forge_or_die(opts)
-    items = f.list()
-    if items:
-        _display_list(items)
-    else:
-        print("No items found.")
+    r = opts.repo
+    with r.with_chdir():
+        items = r.forge.list()
+        if items:
+            _display_list(items)
+        else:
+            print("No items found.")
 
 
 def _pre_commit_stack(ref: Optional[str]) -> None:
@@ -179,7 +200,10 @@ def pre_commit_command(
     ref: Optional[str] = typer.Argument(None, help="Ref to check"),
 ) -> None:
     """Run pre-commit hooks."""
-    _pre_commit_stack(ref)
+    opts: GlobalOptions = ctx.obj
+    r = opts.repo
+    with r.with_chdir():
+        _pre_commit_stack(ref)
 
 
 @app.command("pull")
@@ -193,11 +217,14 @@ def pull_command(
 ) -> None:
     """Pull from remote and rebase local branches"""
     opts: GlobalOptions = ctx.obj
-    jj.run("git", "fetch", "--remote", opts.remote)
-    if all:
-        jj.run("rebase", "--skip-emptied", "-d", "trunk()", "-r", "mutable()")
-    else:
-        jj.run("rebase", "--skip-emptied", "-d", "trunk()", "-r", "trunk()..@")
+    r = opts.repo
+    with r.with_chdir():
+        jj.run("git", "fetch", "--remote", r.forge.remote)
+        if all:
+            range = "mutable()"
+        else:
+            range = "trunk()..@"
+        jj.run("rebase", "--skip-emptied", "-d", "trunk()", "-r", range)
 
 
 def run() -> None:

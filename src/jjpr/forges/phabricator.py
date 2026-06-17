@@ -1,7 +1,7 @@
 import json
 import logging
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List, Optional
 
 import requests
 from rich.pretty import pretty_repr
@@ -12,18 +12,58 @@ from .base import CRListItem, Forge
 log = logging.getLogger(__name__)
 
 
+class PhabricatorSession(requests.Session):
+    """HTTPAdapter that automatically adds api.token to POST request data."""
+
+    def __init__(self, token: str, *args, **kwargs):
+        self.token = token
+        super().__init__(*args, **kwargs)
+
+    @staticmethod
+    def _flatten_params(base: Optional[str], formed_params: dict, params: dict) -> None:
+        for key, value in params.items():
+            if base:
+                new_key = f"{base}[{key}]"
+            else:
+                new_key = key
+            if isinstance(value, dict):
+                PhabricatorSession._flatten_params(new_key, formed_params, value)
+            elif isinstance(value, list):
+                for i, item in enumerate(value):
+                    PhabricatorSession._flatten_params(
+                        new_key, formed_params, {str(i): item}
+                    )
+            else:
+                formed_params[new_key] = value
+
+    def post(
+        self,
+        url: str,
+        *args,
+        data: Optional[dict[str, Any]] = None,
+        **kwargs,
+    ) -> requests.Response:
+        formed_params = {
+            "api.token": self.token,
+        }
+        self._flatten_params(None, formed_params, data or {})
+        return super().post(url, data=formed_params, *args, **kwargs)
+
+
 class Phabricator(Forge):
-    def _api_token(self) -> str:
+    @property
+    def session(self) -> requests.Session:
+        token = None
         arc_conf = Path.home() / ".arcrc"
         if arc_conf.exists():
             with open(arc_conf) as f:
                 data = json.load(f)
-            if token := data.get("hosts", {}).get(self.forge_url, {}).get("token"):
-                return token
-
-        raise utils.UserError(
-            "Phabricator API token not found. Configure it in ~/.arcrc"
-        )
+            token = data.get("hosts", {}).get(self.forge_url, {}).get("token")
+        if not token:
+            raise utils.UserError(
+                "Phabricator API token not found. Configure it in ~/.arcrc"
+            )
+        return PhabricatorSession(token)
 
     @property
     def project_id(self) -> str:
@@ -37,30 +77,10 @@ class Phabricator(Forge):
             "Could not determine project ID. Ensure .arcconfig exists and has 'repository.callsign' set."
         )
 
-    @staticmethod
-    def _flatten_params(base: Optional[str], formed_params: dict, params: dict) -> None:
-        for key, value in params.items():
-            if base:
-                new_key = f"{base}[{key}]"
-            else:
-                new_key = key
-            if isinstance(value, dict):
-                Phabricator._flatten_params(new_key, formed_params, value)
-            elif isinstance(value, list):
-                for i, item in enumerate(value):
-                    Phabricator._flatten_params(new_key, formed_params, {str(i): item})
-            else:
-                formed_params[new_key] = value
-
     def _request(self, endpoint: str, params: Optional[dict] = None) -> dict:
         url = f"{self.forge_url}/api/{endpoint}"
-        params = params or {}
-        params["api.token"] = self._api_token()
-        safe_params = {k: v for k, v in params.items() if k != "api.token"}
-        log.debug(f"Making request to {url}:\n{pretty_repr(safe_params)}")
-        formed_params = {}
-        self._flatten_params(None, formed_params, params)
-        response = requests.post(url, data=formed_params)
+        log.debug(f"Making request to {url}:\n{pretty_repr(params)}")
+        response = self.session.post(url, data=params)
         response.raise_for_status()
         result = response.json()
         log.debug(f"Response from {url}:\n{pretty_repr(result)}")

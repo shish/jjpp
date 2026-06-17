@@ -1,13 +1,13 @@
 import logging
 
-from jjpr import forges
+from jjpr.forges import phabricator
 
 log = logging.getLogger(__name__)
 
 
-class TestPhabricator:
+class TestPhabricatorSession:
     def test_flatten_params(self):
-        p = forges.Phabricator("origin", "http://phab.localhost:8081")
+        p = phabricator.PhabricatorSession("api-1234")
         params = {
             "key1": "value1",
             "key2": {

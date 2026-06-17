@@ -59,5 +59,5 @@ uv sync
 jj config set --user aliases.pr "['util', 'exec', '--', '$(pwd)/.venv/bin/jj-pr']"
 
 # if you want to be hacking on jj-pr itself
-uv run pre-commit install
+uv run prek install
 ```

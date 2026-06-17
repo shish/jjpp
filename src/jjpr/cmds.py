@@ -44,13 +44,14 @@ def pre_commit(ref: Optional[str]) -> None:
         log.info("No .git/hooks/pre-commit found, skipping pre-commit hooks")
         return
 
+    pc_apps = ["prek", "pre-commit"]
     pc_cmd = None
-    for cmd in ["prek", "pre-commit"]:
+    for cmd in pc_apps:
         if shutil.which(cmd):
             pc_cmd = cmd
             break
     if not pc_cmd:
-        log.info("No pre-commit command found, skipping pre-commit hooks")
+        log.info(f"No pre-commit app found ({', '.join(pc_apps)}), skipping pre-commit")
         return
 
     changes = (

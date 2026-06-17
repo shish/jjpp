@@ -48,7 +48,7 @@ def get_forge(forge: Optional[ForgeName], remote: str) -> Forge:
         return Gerrit(remote, remote_url)
 
     raise utils.UserError(
-        f"Error: Could not detect forge from remote URL: {remote_url}. "
+        f"Could not detect forge from remote URL: {remote_url}. "
         "Please specify --forge explicitly (github, phabricator, gerrit)."
     )
 

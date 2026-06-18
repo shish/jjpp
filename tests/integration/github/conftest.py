@@ -13,14 +13,24 @@ from ..conftest import run_cmd
 
 
 @pytest.fixture(scope="session")
-def github_url() -> str:
+def github_url() -> httpx.URL:
     """Get the GitHub URL from the environment variable or use a default."""
-    return os.getenv("GITHUB_URL", "https://github.com")
+    return httpx.URL(os.getenv("GITHUB_URL", "https://github.com"))
+
+
+@pytest.fixture(scope="session")
+def github_api_url(github_url: httpx.URL) -> httpx.URL:
+    """Get the GitHub API URL based on the GitHub URL."""
+    if github_url.host == "github.com":
+        return httpx.URL("https://api.github.com")
+    else:
+        # For GitHub Enterprise, API is at {github_url}/api/v3
+        return github_url.join("/api/v3")
 
 
 @pytest.fixture(scope="session")
 def github_session(
-    github_url: str,
+    github_api_url: httpx.URL,
 ) -> Generator[httpx.Client, None, None]:
     """Create and validate a GitHub API session."""
     token = os.getenv("GITHUB_TOKEN")
@@ -35,16 +45,9 @@ def github_session(
         }
     )
 
-    # Determine the API URL based on GitHub URL
-    if github_url == "https://github.com":
-        api_url = "https://api.github.com"
-    else:
-        # For GitHub Enterprise, API is at {github_url}/api/v3
-        api_url = f"{github_url}/api/v3"
-
     # Check that the client works
     try:
-        response = client.get(f"{api_url}/user")
+        response = client.get(github_api_url.join("/user"))
         response.raise_for_status()
     except Exception as e:
         pytest.skip(f"GitHub API error or invalid token: {e}")
@@ -55,22 +58,17 @@ def github_session(
 
 @pytest.fixture
 def github_repo(
-    github_url: str,
+    github_url: httpx.URL,
+    github_api_url: httpx.URL,
     github_session: httpx.Client,
 ) -> Generator[str, None, None]:
     """Create and cleanup a test repository on GitHub."""
     rand = "".join(random.choices(string.ascii_lowercase, k=4))
     repo_name = f"ztst-ghub-{rand}"
 
-    # Determine the API URL based on GitHub URL
-    if github_url == "https://github.com":
-        api_url = "https://api.github.com"
-    else:
-        api_url = f"{github_url}/api/v3"
-
     # Get the current username from the API
     try:
-        user_response = github_session.get(f"{api_url}/user")
+        user_response = github_session.get(github_api_url.join("/user"))
         user_response.raise_for_status()
         github_username = user_response.json()["login"]
     except Exception as e:
@@ -78,7 +76,7 @@ def github_repo(
 
     try:
         response = github_session.post(
-            f"{api_url}/user/repos",
+            github_api_url.join("/user/repos"),
             json={
                 "name": repo_name,
                 "description": "Test repository for jj-pr integration tests",
@@ -96,7 +94,7 @@ def github_repo(
 
     try:
         response = github_session.delete(
-            f"{api_url}/repos/{github_username}/{repo_name}"
+            github_api_url.join(f"/repos/{github_username}/{repo_name}")
         )
         response.raise_for_status()
     except Exception as e:
@@ -105,7 +103,7 @@ def github_repo(
 
 @pytest.fixture
 def github_clone(
-    github_url: str,
+    github_url: httpx.URL,
     github_repo: str,
 ) -> Generator[Path, None, None]:
     """Clone a test GitHub repository and initialize it with jj."""

@@ -2,6 +2,8 @@ import logging
 import subprocess
 from typing import Literal, overload
 
+import httpx
+
 log = logging.getLogger(__name__)
 
 
@@ -47,9 +49,15 @@ def run(cmd: list[str], cap: bool = True) -> str | None:
         raise
 
 
-def get_git_remote_url(remote_name: str = "origin") -> str:
+def get_git_remote_url(remote_name: str = "origin") -> httpx.URL:
     try:
-        return run(["git", "config", "--get", f"remote.{remote_name}.url"])
+        url = run(["git", "config", "--get", f"remote.{remote_name}.url"])
+        if "://" not in url:
+            if url.startswith("/"):
+                url = "file://" + url
+            else:
+                url = "https://" + url.replace(":", "/", 1)
+        return httpx.URL(url)
     except Exception as e:
         raise UserError(f"Failed to get git remote URL for '{remote_name}': {e}")
 

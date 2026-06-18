@@ -38,7 +38,7 @@ class PhabricatorClient(httpx.Client):
 
     def post(
         self,
-        url: str,
+        url: httpx.URL,
         *args,
         data: Optional[dict[str, Any]] = None,
         **kwargs,
@@ -58,10 +58,13 @@ class Phabricator(Forge):
         if arc_conf.exists():
             with open(arc_conf) as f:
                 data = json.load(f)
-            token = data.get("hosts", {}).get(self.forge_url, {}).get("token")
+            for host, config in data.get("hosts", {}).items():
+                if host.startswith(self.forge_url):
+                    token = config.get("token")
+                    break
         if not token:
             raise utils.UserError(
-                "Phabricator API token not found. Configure it in ~/.arcrc"
+                f"API token for {self.forge_url} not found in ~/.arcrc"
             )
         return PhabricatorClient(token)
 
@@ -78,7 +81,7 @@ class Phabricator(Forge):
         )
 
     def _request(self, endpoint: str, params: Optional[dict] = None) -> dict:
-        url = f"{self.forge_url}/api/{endpoint}"
+        url = self.forge_url.join(f"/api/{endpoint}")
         log.debug(f"Making request to {url}:\n{pretty_repr(params)}")
         response = self.session.post(url, data=params)
         response.raise_for_status()
@@ -152,7 +155,7 @@ class Phabricator(Forge):
                 project_id=self.project_id,
                 identifier=str(rev["id"]),
                 title=rev["fields"]["title"],
-                url=rev["fields"]["uri"],
+                url=httpx.URL(rev["fields"]["uri"]),
                 state=self._colour_state(rev["fields"]["status"]["name"]),
                 blockers="",
             )

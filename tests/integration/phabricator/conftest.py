@@ -16,21 +16,21 @@ from ..conftest import run_cmd
 
 
 @pytest.fixture(scope="session")
-def phabricator_url() -> str:
+def phabricator_url() -> httpx.URL:
     """Get the Phabricator URL from the environment variable or use a default."""
-    return os.getenv("PHABRICATOR_URL", "http://phab.localhost:8081")
+    return httpx.URL(os.getenv("PHABRICATOR_URL", "http://phab.localhost:8081"))
 
 
 @pytest.fixture(scope="session")
 def phabricator_session(
     tmp_home: Path,
-    phabricator_url: str,
+    phabricator_url: httpx.URL,
 ) -> Generator[httpx.Client, None, None]:
     # configure .arcrc
     phabricator_token = os.getenv("PHABRICATOR_API_TOKEN")
     if not phabricator_token:
         pytest.skip("PHABRICATOR_API_TOKEN environment variable not set")
-    data = {"hosts": {phabricator_url: {"token": phabricator_token}}}
+    data = {"hosts": {str(phabricator_url): {"token": phabricator_token}}}
     rc = Path(tmp_home) / ".arcrc"
     rc.write_text(json.dumps(data))
     rc.chmod(0o600)
@@ -40,7 +40,7 @@ def phabricator_session(
 
     # check that the client works
     try:
-        response = client.post(f"{phabricator_url}/api/user.whoami")
+        response = client.post(phabricator_url.join("/api/user.whoami"))
         response.raise_for_status()
         data = response.json()
         assert data["result"]["userName"] == "admin"
@@ -53,14 +53,14 @@ def phabricator_session(
 
 @pytest.fixture
 def phabricator_repo(
-    phabricator_url: str,
+    phabricator_url: httpx.URL,
     phabricator_session: httpx.Client,
 ) -> Generator[str, None, None]:
     rand = "".join(random.choices(string.ascii_lowercase, k=4))
     repo_name = f"ztst-phab-{rand}"
     try:
         response = phabricator_session.post(
-            f"{phabricator_url}/api/diffusion.repository.edit",
+            phabricator_url.join("/api/diffusion.repository.edit"),
             data={
                 "transactions": [
                     {"type": "name", "value": repo_name},
@@ -84,7 +84,7 @@ def phabricator_repo(
 
     try:
         response = phabricator_session.post(
-            f"{phabricator_url}/api/diffusion.repository.search",
+            phabricator_url.join("/api/diffusion.repository.search"),
             data={"constraints": {"shortNames": [repo_name]}},
         )
         response.raise_for_status()
@@ -98,7 +98,7 @@ def phabricator_repo(
         if repos:
             repo_phid = repos[0]["phid"]
             response = phabricator_session.post(
-                f"{phabricator_url}/api/diffusion.repository.edit",
+                phabricator_url.join("/api/diffusion.repository.edit"),
                 data={
                     "objectIdentifier": repo_phid,
                     "transactions": [{"type": "status", "value": "inactive"}],
@@ -111,7 +111,7 @@ def phabricator_repo(
 
 @pytest.fixture
 def phabricator_clone(
-    phabricator_url: str,
+    phabricator_url: httpx.URL,
     phabricator_repo: str,
 ) -> Generator[Path, None, None]:
     tmp_dir = tempfile.mkdtemp(prefix="jjpr_phab_")
@@ -122,7 +122,7 @@ def phabricator_clone(
         run_cmd("git", "clone", f"{phabricator_url}/{phabricator_repo}.git", ".")
         run_cmd("jj", "git", "init", ".")
         data = {
-            "phabricator.uri": phabricator_url,
+            "phabricator.uri": str(phabricator_url),
             "repository.callsign": f"ZTST{phabricator_repo[-4:].upper()}",
         }
         Path(".arcconfig").write_text(json.dumps(data))

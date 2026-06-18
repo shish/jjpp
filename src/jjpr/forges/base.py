@@ -2,7 +2,8 @@ import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import List, Optional
-from urllib.parse import urlparse
+
+import httpx
 
 log = logging.getLogger(__name__)
 
@@ -12,11 +13,11 @@ class CRListItem:
     """Represents an item in a code review list."""
 
     forge_name: str
-    forge_url: str
+    forge_url: httpx.URL
     project_id: str
     identifier: str
     title: str
-    url: str
+    url: httpx.URL
     state: str
     blockers: str
     extra: dict[str, str] = field(default_factory=dict)
@@ -29,31 +30,19 @@ class ForgeException(Exception):
 
 
 class Forge(ABC):
-    def __init__(self, remote: str, remote_url: str):
+    def __init__(self, remote: str, remote_url: httpx.URL):
         self.remote = remote
         self.remote_url = remote_url
 
     @property
-    def forge_url(self) -> str:
+    def forge_url(self) -> httpx.URL:
         """Extract the forge API base URL from remote_url.
 
         Converts URLs like:
         - https://gerrit.mycompany.com/a/project -> https://gerrit.mycompany.com
-        - git@gerrit.mycompany.com:project -> https://gerrit.mycompany.com
+        - https://github.com/owner/repo.git -> https://github.com
         """
-        parsed = urlparse(self.remote_url)
-
-        # Handle SSH URLs (git@host:project)
-        if parsed.scheme in ("", "ssh") or "@" in self.remote_url:
-            # Extract host from git@host:project format
-            host = self.remote_url.split("@")[1].split(":")[0]
-            return f"https://{host}"
-
-        # Handle HTTPS URLs
-        if parsed.scheme in ("http", "https"):
-            return f"{parsed.scheme}://{parsed.netloc}"
-
-        raise ValueError(f"Cannot parse forge URL from remote: {self.remote_url}")
+        return httpx.URL(f"{self.remote_url.scheme}://{self.remote_url.host}")
 
     @property
     def project_id(self) -> str:
@@ -61,18 +50,10 @@ class Forge(ABC):
 
         Converts URLs like:
         - https://gerrit.mycompany.com/a/project -> project
-        - git@gerrit.mycompany.com:project -> project
         - https://github.com/owner/repo.git -> owner/repo
         """
-        parsed = urlparse(self.remote_url)
-
-        # Handle SSH URLs (git@host:project)
-        if parsed.scheme in ("", "ssh") or "@" in self.remote_url:
-            # Extract path from git@host:project format
-            path = self.remote_url.split(":")[1]
-        else:
-            # Handle HTTPS URLs
-            path = parsed.path
+        # Handle HTTPS URLs
+        path = self.remote_url.path
 
         # Remove leading/trailing slashes and .git suffix
         path = path.strip("/")

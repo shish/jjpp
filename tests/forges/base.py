@@ -1,6 +1,8 @@
 import logging
 from typing import Optional
 
+import httpx
+
 from jjpr.forges.base import CRListItem, Forge
 
 log = logging.getLogger(__name__)
@@ -25,24 +27,15 @@ class DummyForge(Forge):
 
 class TestForgeProperties:
     def test_forge_url_https(self):
-        f = DummyForge("origin", "https://gerrit.mycompany.com/a/project")
-        assert f.forge_url == "https://gerrit.mycompany.com"
-        assert f.project_id == "project"
-
-    def test_forge_url_ssh(self):
-        f = DummyForge("origin", "git@gerrit.mycompany.com:project")
-        assert f.forge_url == "https://gerrit.mycompany.com"
+        f = DummyForge("origin", httpx.URL("https://gerrit.mycompany.com/a/project"))
+        assert str(f.forge_url) == "https://gerrit.mycompany.com"
         assert f.project_id == "project"
 
     def test_forge_url_github(self):
-        f = DummyForge("origin", "https://github.com/owner/repo.git")
-        assert f.forge_url == "https://github.com"
+        f = DummyForge("origin", httpx.URL("https://github.com/owner/repo.git"))
+        assert str(f.forge_url) == "https://github.com"
         assert f.project_id == "owner/repo"
 
     def test_project_id_https_github_no_git_suffix(self):
-        f = DummyForge("origin", "https://github.com/owner/repo")
-        assert f.project_id == "owner/repo"
-
-    def test_project_id_ssh_github(self):
-        f = DummyForge("origin", "git@github.com:owner/repo.git")
+        f = DummyForge("origin", httpx.URL("https://github.com/owner/repo"))
         assert f.project_id == "owner/repo"

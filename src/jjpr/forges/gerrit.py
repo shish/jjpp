@@ -4,7 +4,6 @@ import logging
 import re
 from netrc import NetrcParseError, netrc
 from typing import List, Optional, Union
-from urllib.parse import urlparse
 
 import httpx
 
@@ -19,13 +18,11 @@ class Gerrit(Forge):
         try:
             rc = netrc()
         except (FileNotFoundError, NetrcParseError) as e:
-            log.warning(f"Could not read netrc file: {e}")
+            log.warning(f"Could not get creds from netrc file: {e}")
             return None
 
         # Extract hostname from forge_url (e.g., "gerrit.example.com" from "https://gerrit.example.com")
-
-        parsed = urlparse(self.forge_url)
-        hostname = parsed.hostname
+        hostname = self.forge_url.host
 
         if not hostname:
             log.warning("Could not determine hostname from forge_url")
@@ -44,7 +41,7 @@ class Gerrit(Forge):
         credentials = base64.b64encode(f"{login}:{password}".encode()).decode()
         return {"Authorization": f"Basic {credentials}"}
 
-    def _request(self, url: str) -> Union[dict, list]:
+    def _request(self, url: httpx.URL) -> Union[dict, list]:
         auth_header = self._get_auth_header()
 
         try:
@@ -93,7 +90,7 @@ class Gerrit(Forge):
     def checkout(self, identifier: str) -> None:
         log.info(f"Fetching Gerrit change {identifier}")
         # Query API to get the latest patch set number
-        url = f"{self.forge_url}/a/changes/{identifier}?o=CURRENT_REVISION"
+        url = self.forge_url.join(f"/a/changes/{identifier}?o=CURRENT_REVISION")
         change_data_response = self._request(url)
 
         # Ensure response is a dict
@@ -120,7 +117,9 @@ class Gerrit(Forge):
         query = "owner:self+status:open"
         if not all_projects:
             query += f"+project:{self.project_id}"
-        url = f"{self.forge_url}/a/changes/?q={query}&o=SUBMIT_REQUIREMENTS&o=DETAILED_ACCOUNTS"
+        url = self.forge_url.join(
+            f"/a/changes/?q={query}&o=SUBMIT_REQUIREMENTS&o=DETAILED_ACCOUNTS"
+        )
         changes_response = self._request(url)
 
         crs: List[CRListItem] = []
@@ -138,7 +137,7 @@ class Gerrit(Forge):
                     project_id=self.project_id,
                     identifier=str(change["_number"]),
                     title=change["subject"],
-                    url=f"{self.forge_url}/c/{change['_number']}",
+                    url=self.forge_url.join(f"/c/{change['_number']}"),
                     state=self._colour_state(
                         is_private=change.get("is_private", False),
                         work_in_progress=change.get("work_in_progress", False),

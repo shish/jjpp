@@ -1,6 +1,7 @@
 import logging
 from typing import Literal, Optional
-from urllib.parse import urlparse
+
+import httpx
 
 from .. import utils
 from .base import Forge
@@ -13,12 +14,11 @@ log = logging.getLogger(__name__)
 ForgeName = Literal["github", "phabricator", "gerrit"]
 
 
-def detect_forge_from_url(url: str) -> Optional[ForgeName]:
+def detect_forge_from_url(url: httpx.URL) -> Optional[ForgeName]:
     if not url:
         return None
 
-    parsed = urlparse(url)
-    domain = parsed.netloc.lower()
+    domain = url.host.lower() if url.host else ""
 
     # Remove 'www.' prefix if present
     if domain.startswith("www."):

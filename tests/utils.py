@@ -79,7 +79,7 @@ class TestGetGitRemoteUrl:
 
         url = utils.get_git_remote_url("origin")
         assert url is not None
-        assert str(remote_repo) in url
+        assert str(remote_repo) in str(url)
 
     def test_get_git_remote_url_nonexistent_remote(self, tmp_repo: Path):
         """Test getting URL of non-existent remote returns None."""

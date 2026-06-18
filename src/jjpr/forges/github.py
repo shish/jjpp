@@ -3,6 +3,8 @@ import logging
 import re
 from typing import Any, List, Optional
 
+import httpx
+
 from .. import jj, utils
 from .base import CRListItem, Forge
 
@@ -93,7 +95,7 @@ class GitHub(Forge):
                 "checkout",
                 identifier,
                 "--repo",
-                self.remote_url,
+                str(self.remote_url),
             ]
         )
 
@@ -108,7 +110,7 @@ class GitHub(Forge):
             "pr",
             "list",
             "--repo",
-            self.remote_url,
+            str(self.remote_url),
             "--json",
             "number,title,state,url,statusCheckRollup,isDraft,reviews",
         ]
@@ -139,7 +141,7 @@ class GitHub(Forge):
                     project_id=self.project_id,
                     identifier=str(pr["number"]),
                     title=pr["title"],
-                    url=pr["url"],
+                    url=httpx.URL(pr["url"]),
                     state=self._colour_state(
                         pr["state"], is_draft=is_draft, reviews=reviews
                     ),

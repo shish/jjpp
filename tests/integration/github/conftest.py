@@ -9,7 +9,7 @@ from typing import Generator
 import httpx
 import pytest
 
-from ..conftest import run_cmd
+from ...conftest import run_cmd
 
 
 @pytest.fixture(scope="session")

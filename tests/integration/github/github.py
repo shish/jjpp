@@ -2,7 +2,7 @@ from pathlib import Path
 
 from jjpr.main import main
 
-from ..conftest import run_cmd
+from ...conftest import run_cmd
 
 
 class TestGithub:

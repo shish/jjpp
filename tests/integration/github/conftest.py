@@ -15,7 +15,7 @@ from ...conftest import run_cmd
 @pytest.fixture(scope="session")
 def url() -> httpx.URL:
     """Get the GitHub URL from the environment variable or use a default."""
-    return httpx.URL(os.getenv("GITHUB_URL", "https://github.com"))
+    return httpx.URL(os.getenv("JJPR_TEST_GITHUB_URL", "https://github.com"))
 
 
 @pytest.fixture(scope="session")
@@ -33,9 +33,9 @@ def session(
     api_url: httpx.URL,
 ) -> Generator[httpx.Client, None, None]:
     """Create and validate a GitHub API session."""
-    token = os.getenv("GITHUB_TOKEN")
+    token = os.getenv("JJPR_TEST_GITHUB_API_TOKEN")
     if not token:
-        pytest.skip("GITHUB_TOKEN environment variable not set")
+        pytest.skip("JJPR_TEST_GITHUB_API_TOKEN environment variable not set")
 
     client = httpx.Client(
         headers={

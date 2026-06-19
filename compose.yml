@@ -14,7 +14,6 @@ services:
       GERRIT_HEAPDUMP: "false"
     volumes:
       - gerrit_data:/var/gerrit
-      - ./init-scripts/gerrit-init.sh:/docker-entrypoint-init.d/gerrit-init.sh:ro
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/"]
       interval: 10s
@@ -53,16 +52,27 @@ services:
     volumes:
       - phab_data:/srv/phabricator/phabricator
       - phab_arcanist:/srv/phabricator/arcanist
-      - ./init-scripts/phabricator-init.sh:/docker-entrypoint-init.d/phabricator-init.sh:ro
     depends_on:
       phabricator-mysql:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/status/"]
+      test: ["CMD", "curl", "-f", "http://phab.localhost/status/"]
       interval: 10s
       timeout: 5s
       retries: 30
       start_period: 120s
+    post_start:
+      - command:
+          - sh
+          - -c
+          - |
+            set -e
+            bin/config set mysql.host phabricator-mysql
+            bin/config set mysql.user root
+            bin/config set mysql.pass phabricator
+            bin/config set phabricator.base-uri http://phab.localhost:8081/
+            bin/storage upgrade --force
+            bin/phd start
 
 volumes:
   gerrit_data:

@@ -17,7 +17,7 @@ from ...conftest import run_cmd
 @pytest.fixture(scope="session")
 def url() -> httpx.URL:
     """Get the Gerrit URL from the environment variable or use a default."""
-    return httpx.URL(os.getenv("GERRIT_URL", "http://gerrit.localhost:8080"))
+    return httpx.URL(os.getenv("JJPR_TEST_GERRIT_URL", "http://gerrit.localhost:8080"))
 
 
 @pytest.fixture(scope="session")
@@ -26,7 +26,7 @@ def session(
     url: httpx.URL,
 ) -> Generator[httpx.Client, None, None]:
     # configure .netrc
-    gerrit_token = os.getenv("GERRIT_API_TOKEN")
+    gerrit_token = os.getenv("JJPR_TEST_GERRIT_API_TOKEN")
     if gerrit_token:
         rc = Path(tmp_home) / ".netrc"
         rc.write_text(f"machine {url.host}\nlogin admin\npassword {gerrit_token}\n")

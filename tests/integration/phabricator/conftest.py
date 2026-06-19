@@ -18,7 +18,9 @@ from ...conftest import run_cmd
 @pytest.fixture(scope="session")
 def url() -> httpx.URL:
     """Get the Phabricator URL from the environment variable or use a default."""
-    return httpx.URL(os.getenv("PHABRICATOR_URL", "http://phab.localhost:8081"))
+    return httpx.URL(
+        os.getenv("JJPR_TEST_PHABRICATOR_URL", "http://phab.localhost:8081")
+    )
 
 
 @pytest.fixture(scope="session")
@@ -27,9 +29,9 @@ def session(
     url: httpx.URL,
 ) -> Generator[httpx.Client, None, None]:
     # configure .arcrc
-    phabricator_token = os.getenv("PHABRICATOR_API_TOKEN")
+    phabricator_token = os.getenv("JJPR_TEST_PHABRICATOR_API_TOKEN")
     if not phabricator_token:
-        pytest.skip("PHABRICATOR_API_TOKEN environment variable not set")
+        pytest.skip("JJPR_TEST_PHABRICATOR_API_TOKEN environment variable not set")
     data = {"hosts": {str(url): {"token": phabricator_token}}}
     rc = Path(tmp_home) / ".arcrc"
     rc.write_text(json.dumps(data))

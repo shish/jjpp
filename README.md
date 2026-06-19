@@ -63,3 +63,24 @@ jj config set --user aliases.pr "['util', 'exec', '--', '$(pwd)/.venv/bin/jj-pr'
 # if you want to be hacking on jj-pr itself
 uv run prek install
 ```
+
+## Integration Testing
+
+```bash
+docker compose up -d
+docker compose ps    # wait and repeat until containers are healthy
+
+# Create admin user, get a token from settings
+open "http://gerrit.localhost:8080/settings/#HTTPCredentials"
+export JJPR_TEST_GERRIT_API_TOKEN=...
+
+# Create admin user, get a token from settings
+open "http://phab.localhost:8081/settings/user/admin/page/apitokens/"
+export JJPR_TEST_PHABRICATOR_API_TOKEN=...
+
+# Run tests against the above forges
+uv run pytest -v --no-cov tests/integration
+
+# Delete test environment
+docker compose down -v
+```

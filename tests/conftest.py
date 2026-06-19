@@ -39,6 +39,7 @@ def tmp_home() -> Generator[Path, None, None]:
     tmp_dir = tempfile.mkdtemp(prefix="jjpr_home_")
     original_home = os.environ.get("HOME", "")
     os.environ["HOME"] = tmp_dir
+    os.environ["GIT_TERMINAL_PROMPT"] = "0"  # Disable git credential prompts
     try:
         home_lock = Path(tmp_dir) / ".jjpr-lock"
         with FileLock(home_lock):

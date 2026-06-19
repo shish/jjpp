@@ -90,9 +90,9 @@ def pre_commit(ref: Optional[str]) -> None:
                     raise utils.UserError(f"{pc_cmd} failed for change {change_id}")
             if arc_cmd:
                 try:
-                    utils.run([arc_cmd, "lint"], cap=False)
+                    utils.run([arc_cmd, "lint", "--apply-patches"], cap=False)
                 except Exception:
-                    raise utils.UserError(f"{pc_cmd} failed for change {change_id}")
+                    raise utils.UserError(f"{arc_cmd} failed for change {change_id}")
 
 
 def display_list(items: List[CRListItem], multi: bool) -> None:

@@ -8,6 +8,7 @@ from typing import Generator
 
 import httpx
 import pytest
+import tenacity as tc
 
 from ...conftest import run_cmd, tmp_cwd
 from .client import PhabricatorClient
@@ -34,6 +35,14 @@ def session(
     data = {"hosts": {str(url) + "/api/": {"token": phabricator_token}}}
     rc = Path(tmp_home) / ".arcrc"
     rc.write_text(json.dumps(data))
+    rc.chmod(0o600)
+
+    vcs_password = os.getenv("JJPR_TEST_PHABRICATOR_VCS_PASSWORD")
+    if not vcs_password:
+        pytest.skip("JJPR_TEST_PHABRICATOR_VCS_PASSWORD not set, skipping tests")
+
+    rc = Path(tmp_home) / ".netrc"
+    rc.open("a").write(f"machine {url.host}\nlogin admin\npassword {vcs_password}\n\n")
     rc.chmod(0o600)
 
     # configure http client with persistent token
@@ -73,15 +82,32 @@ def repo(
                 ]
             },
         )
-        result = response.json()
-        if result.get("error_code"):
-            raise Exception(
-                f"Phabricator API error: {result['error_code']} - {result.get('error_info')}"
-            )
+        response.json()
     except Exception as e:
         pytest.skip(f"Phabricator repo creation error: {url}: {e}")
 
     try:
+        # jj can't tell which branch is trunk() if we clone a totally bare repo,
+        # and arc gets confused if .arcconfig is missing, so let's pre-populate
+        # those as part of the repo creation process.
+        with tmp_cwd():
+            callsign = f"ZTST{rand.upper()}"
+            for attempt in tc.Retrying(
+                stop=tc.stop_after_attempt(5),
+                wait=tc.wait_fixed(5),
+                reraise=True,
+            ):
+                with attempt:
+                    run_cmd("git", "clone", f"{url}/source/{repo_name}.git", ".")
+            data = {
+                "phabricator.uri": str(url),
+                "repository.callsign": callsign,
+            }
+            Path(".arcconfig").write_text(json.dumps(data))
+            run_cmd("git", "add", ".arcconfig")
+            run_cmd("git", "commit", "-m", "Initial commit with .arcconfig")
+            run_cmd("git", "push")
+
         yield repo_name
     finally:
         response = session.post(
@@ -89,11 +115,6 @@ def repo(
             data={"constraints": {"shortNames": [repo_name]}},
         )
         result = response.json()
-        if result.get("error_code"):
-            raise Exception(
-                f"Phabricator API error: {result['error_code']} - {result.get('error_info')}"
-            )
-
         repos = result.get("result", {}).get("data", [])
         if repos:
             repo_phid = repos[0]["phid"]

@@ -28,7 +28,7 @@ def session(
         pytest.skip("JJPR_TEST_GERRIT_API_TOKEN not set, skipping tests")
 
     rc = Path(tmp_home) / ".netrc"
-    rc.write_text(f"machine {url.host}\nlogin admin\npassword {gerrit_token}\n")
+    rc.open("a").write(f"machine {url.host}\nlogin admin\npassword {gerrit_token}\n\n")
     rc.chmod(0o600)
 
     client = GerritClient(url)

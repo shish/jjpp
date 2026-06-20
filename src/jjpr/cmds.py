@@ -54,13 +54,13 @@ def _get_pc_command() -> Optional[str]:
 
 
 def _get_arc_command() -> Optional[str]:
-    arc_configured = Path(".arcconfig").exists()
+    arc_configured = Path(".arclint").exists()
     if not arc_configured:
         return None
 
     arc_bin = shutil.which("arc")
     if arc_configured and not arc_bin:
-        log.info(".arcconfig found, but no arc binary")
+        log.info(".arclint found, but no arc binary")
 
     return arc_bin
 

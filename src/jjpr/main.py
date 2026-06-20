@@ -52,6 +52,9 @@ def main(
 ) -> None:
     log_level = [logging.WARNING, logging.INFO, logging.DEBUG][min(verbose, 2)]
     logging.basicConfig(level=log_level)
+    # we can log our own HTTP I/O
+    logging.getLogger("httpx.http11").setLevel(logging.WARNING)
+    logging.getLogger("httpcore.http11").setLevel(logging.WARNING)
 
     if not path:
         try:

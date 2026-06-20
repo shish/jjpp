@@ -43,6 +43,9 @@ class PhabricatorClient(httpx.Client):
 
     def request(self, *args, **kwargs) -> httpx.Response:
         response = super().request(*args, **kwargs)
+        log.debug(
+            f"{response.request.method}({response.request.url}) -> {response.text}"
+        )
         try:
             response.raise_for_status()
         except httpx.HTTPStatusError as e:

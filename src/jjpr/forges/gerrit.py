@@ -27,8 +27,10 @@ class GerritClient(httpx.Client):
             raise utils.UserError(
                 f"Could not find credentials for {base_url.host} in ~/.netrc"
             )
-        base_url = base_url.copy_with(path="/a/")
-        super().__init__(base_url=base_url, headers=headers)
+        super().__init__(
+            base_url=base_url.copy_with(path="/a/"),
+            headers=headers,
+        )
 
     def request(self, *args, **kwargs) -> httpx.Response:
         response = super().request(*args, **kwargs)

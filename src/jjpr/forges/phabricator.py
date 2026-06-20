@@ -24,9 +24,7 @@ class PhabricatorClient(httpx.Client):
     """
 
     def __init__(self, base_url: httpx.URL):
-        if not base_url.path:
-            base_url = base_url.copy_with(path="/api/")
-        super().__init__(base_url=base_url)
+        super().__init__(base_url=base_url.copy_with(path="/api/"))
 
         token = None
         arc_conf = Path.home() / ".arcrc"

@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import shlex
@@ -41,6 +42,16 @@ def tmp_home() -> Generator[Path, None, None]:
         # configure .gitrc
         run_cmd("git", "config", "user.email", "test@example.com")
         run_cmd("git", "config", "user.name", "Test User")
+
+        # configure jj
+        run_cmd(
+            "jj",
+            "config",
+            "set",
+            "--user",
+            "aliases.pr",
+            json.dumps(["util", "exec", "--", shutil.which("jj-pr")]),
+        )
 
         yield Path(tmp_dir)
     finally:

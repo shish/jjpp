@@ -1,9 +1,8 @@
 import base64
-import json
 import logging
 import re
 from netrc import NetrcParseError, netrc
-from typing import List, Optional, Union
+from typing import List, Optional
 
 import httpx
 
@@ -13,38 +12,45 @@ from .base import CRListItem, Forge
 log = logging.getLogger(__name__)
 
 
-class Gerrit(Forge):
-    def __init__(self, remote: str, remote_url: httpx.URL):
-        super().__init__(remote, remote_url)
-        self.client = httpx.Client(
-            headers=_get_auth_header(self.forge_url.host),
-            base_url=self.forge_url,
-        )
+class GerritClient(httpx.Client):
+    """Custom httpx.Client for Gerrit.
 
-    def _request(self, path: str) -> Union[dict, list]:
-        url = self.forge_url.join(path)
+    - Loads credentials from ~/.netrc.
+    - Adds HTTP Basic Auth header to requests.
+    - Strips Gerrit's magic prefix from JSON responses.
+    - Raises exceptions on HTTP errors
+    """
+
+    def __init__(self, base_url: httpx.URL) -> None:
+        headers = _get_auth_header(base_url.host)
+        if not headers:
+            raise utils.UserError(
+                f"Could not find credentials for {base_url.host} in ~/.netrc"
+            )
+        super().__init__(base_url=base_url, headers=headers)
+
+    def request(self, *args, **kwargs) -> httpx.Response:
+        response = super().request(*args, **kwargs)
         try:
-            log.debug(f"Making request to {url}")
-            response = self.client.get(url)
             response.raise_for_status()
-            result = response.text
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 401:
                 raise utils.UserError(
-                    f"Authentication failed for {url}. Check your netrc credentials."
+                    "Authentication failed. Check your ~/.netrc credentials."
                 )
+            e.add_note(e.response.text)
             raise
-
         # Gerrit API returns a magic prefix that needs to be stripped
-        result = result.lstrip(")]}':\n")
+        cleaned_text = response.text.lstrip(")]}':\n")
+        # Replace the response text with cleaned content
+        response._content = cleaned_text.encode()
+        return response
 
-        try:
-            result = json.loads(result)
-        except json.JSONDecodeError as e:
-            log.error(f"Failed to parse JSON from {url} ({result[:20]!r}): {e}")
-            raise
-        log.debug(f"Response from {url}:\n{json.dumps(result)}")
-        return result
+
+class Gerrit(Forge):
+    def __init__(self, remote: str, remote_url: httpx.URL):
+        super().__init__(remote, remote_url)
+        self.client = GerritClient(self.forge_url)
 
     def push(
         self,
@@ -68,9 +74,9 @@ class Gerrit(Forge):
     def checkout(self, identifier: str) -> None:
         log.info(f"Fetching Gerrit change {identifier}")
         # Query API to get the latest patch set number
-        change_data_response = self._request(
+        change_data_response = self.client.get(
             f"/a/changes/{identifier}?o=CURRENT_REVISION"
-        )
+        ).json()
 
         # Ensure response is a dict
         if not isinstance(change_data_response, dict):
@@ -96,9 +102,9 @@ class Gerrit(Forge):
         query = "owner:self+status:open"
         if not all_projects:
             query += f"+project:{self.project_id}"
-        changes_response = self._request(
+        changes_response = self.client.get(
             f"/a/changes/?q={query}&o=SUBMIT_REQUIREMENTS&o=DETAILED_ACCOUNTS"
-        )
+        ).json()
 
         crs: List[CRListItem] = []
         for change in changes_response:

@@ -7,7 +7,6 @@ log = logging.getLogger(__name__)
 
 class TestPhabricatorClient:
     def test_flatten_params(self):
-        p = phabricator.PhabricatorClient("api-1234")
         params = {
             "key1": "value1",
             "key2": {
@@ -17,7 +16,9 @@ class TestPhabricatorClient:
             "key3": ["listitem3", {"subkey3": "subvalue3"}],
         }
         formed_params = {}
-        p._struct2http(base=None, formed_params=formed_params, params=params)
+        phabricator.PhabricatorClient._struct2http(
+            base=None, formed_params=formed_params, params=params
+        )
         expected = {
             "key1": "value1",
             "key2[subkey1]": "subvalue1",

@@ -7,7 +7,7 @@ name = "jj-pr"
 version = "0.1.0"
 description = "Unified CLI for multiple code review forges (GitHub, Phabricator, Gerrit)"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "httpx>=0.28.1",
     "rich>=15.0.0",

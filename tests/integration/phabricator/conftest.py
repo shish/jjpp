@@ -38,12 +38,11 @@ def session(
     rc.chmod(0o600)
 
     # configure http client with persistent token
-    client = PhabricatorClient(phabricator_token)
+    client = PhabricatorClient(url)
 
     # check that the client works
     try:
         response = client.post(url.join("/api/user.whoami"))
-        response.raise_for_status()
         data = response.json()
         assert data["result"]["userName"] == "admin"
     except Exception as e:
@@ -75,7 +74,6 @@ def repo(
                 ]
             },
         )
-        response.raise_for_status()
         result = response.json()
         if result.get("error_code"):
             raise Exception(
@@ -91,7 +89,6 @@ def repo(
             url.join("/api/diffusion.repository.search"),
             data={"constraints": {"shortNames": [repo_name]}},
         )
-        response.raise_for_status()
         result = response.json()
         if result.get("error_code"):
             raise Exception(
@@ -101,14 +98,13 @@ def repo(
         repos = result.get("result", {}).get("data", [])
         if repos:
             repo_phid = repos[0]["phid"]
-            response = session.post(
+            session.post(
                 url.join("/api/diffusion.repository.edit"),
                 data={
                     "objectIdentifier": repo_phid,
                     "transactions": [{"type": "status", "value": "inactive"}],
                 },
             )
-            response.raise_for_status()
 
 
 @pytest.fixture

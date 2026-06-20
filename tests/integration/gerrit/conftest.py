@@ -1,15 +1,15 @@
-import base64
 import os
 import random
 import shutil
 import string
 import tempfile
-from netrc import netrc
 from pathlib import Path
 from typing import Generator
 
 import httpx
 import pytest
+
+from jjpr.forges.gerrit import GerritClient
 
 from ...conftest import run_cmd
 
@@ -24,7 +24,7 @@ def url() -> httpx.URL:
 def session(
     tmp_home: Path,
     url: httpx.URL,
-) -> Generator[httpx.Client, None, None]:
+) -> Generator[GerritClient, None, None]:
     # configure .netrc
     gerrit_token = os.getenv("JJPR_TEST_GERRIT_API_TOKEN")
     if gerrit_token:
@@ -32,23 +32,11 @@ def session(
         rc.write_text(f"machine {url.host}\nlogin admin\npassword {gerrit_token}\n")
         rc.chmod(0o600)
 
-    # configure http client with persistent auth headers
-    headers = {}
-    try:
-        rc = netrc()
-        hostname = url.host or "fail"
-        login, _, password = rc.authenticators(hostname) or (None, None, None)
-        credentials = base64.b64encode(f"{login}:{password}".encode()).decode()
-        headers.update({"Authorization": f"Basic {credentials}"})
-    except Exception as e:
-        pytest.skip(f"Failed to read credentials from .netrc: {e}")
-
-    client = httpx.Client(headers=headers)
+    client = GerritClient(url)
 
     # check that the client works
     try:
-        response = client.get(url)
-        response.raise_for_status()
+        client.get(url)
     except Exception as e:
         pytest.skip(f"Gerrit server error: {e}")
 
@@ -61,24 +49,22 @@ def session(
 @pytest.fixture
 def repo(
     url: httpx.URL,
-    session: httpx.Client,
+    session: GerritClient,
 ) -> Generator[str, None, None]:
     rand = "".join(random.choices(string.ascii_lowercase, k=4))
     repo_name = f"ztst-gerr-{rand}"
     try:
-        response = session.put(
+        session.put(
             url.join(f"/a/projects/{repo_name}"),
             json={"create_empty_commit": True},
         )
-        response.raise_for_status()
     except Exception as e:
         pytest.skip(f"Gerrit repo creation error: {url}: {e}")
 
     try:
         yield repo_name
     finally:
-        response = session.delete(url.join(f"/a/projects/{repo_name}"))
-        response.raise_for_status()
+        session.delete(url.join(f"/a/projects/{repo_name}"))
 
 
 @pytest.fixture

@@ -10,6 +10,6 @@ class TestGithub:
         # otherwise pytest complains that nothing touched jjpr
         assert main is not None
 
-    def test_clone(self, github_clone: Path):
+    def test_clone(self, clone: Path):
         remote_url = run_cmd("git", "config", "--get", "remote.origin.url").strip()
         assert remote_url.startswith("https://github.com/")

@@ -10,6 +10,6 @@ class TestGerrit:
         # otherwise pytest complains that nothing touched jjpr
         assert main is not None
 
-    def test_clone(self, gerrit_clone: Path):
+    def test_clone(self, clone: Path):
         remote_url = run_cmd("git", "config", "--get", "remote.origin.url").strip()
         assert remote_url.startswith("http://gerrit.localhost:8080/")

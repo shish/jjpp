@@ -16,21 +16,21 @@ from ...conftest import run_cmd
 
 
 @pytest.fixture(scope="session")
-def phabricator_url() -> httpx.URL:
+def url() -> httpx.URL:
     """Get the Phabricator URL from the environment variable or use a default."""
     return httpx.URL(os.getenv("PHABRICATOR_URL", "http://phab.localhost:8081"))
 
 
 @pytest.fixture(scope="session")
-def phabricator_session(
+def session(
     tmp_home: Path,
-    phabricator_url: httpx.URL,
+    url: httpx.URL,
 ) -> Generator[httpx.Client, None, None]:
     # configure .arcrc
     phabricator_token = os.getenv("PHABRICATOR_API_TOKEN")
     if not phabricator_token:
         pytest.skip("PHABRICATOR_API_TOKEN environment variable not set")
-    data = {"hosts": {str(phabricator_url): {"token": phabricator_token}}}
+    data = {"hosts": {str(url): {"token": phabricator_token}}}
     rc = Path(tmp_home) / ".arcrc"
     rc.write_text(json.dumps(data))
     rc.chmod(0o600)
@@ -40,7 +40,7 @@ def phabricator_session(
 
     # check that the client works
     try:
-        response = client.post(phabricator_url.join("/api/user.whoami"))
+        response = client.post(url.join("/api/user.whoami"))
         response.raise_for_status()
         data = response.json()
         assert data["result"]["userName"] == "admin"
@@ -52,15 +52,15 @@ def phabricator_session(
 
 
 @pytest.fixture
-def phabricator_repo(
-    phabricator_url: httpx.URL,
-    phabricator_session: httpx.Client,
+def repo(
+    url: httpx.URL,
+    session: httpx.Client,
 ) -> Generator[str, None, None]:
     rand = "".join(random.choices(string.ascii_lowercase, k=4))
     repo_name = f"ztst-phab-{rand}"
     try:
-        response = phabricator_session.post(
-            phabricator_url.join("/api/diffusion.repository.edit"),
+        response = session.post(
+            url.join("/api/diffusion.repository.edit"),
             data={
                 "transactions": [
                     {"type": "name", "value": repo_name},
@@ -78,13 +78,13 @@ def phabricator_repo(
                 f"Phabricator API error: {result['error_code']} - {result.get('error_info')}"
             )
     except Exception as e:
-        pytest.skip(f"Phabricator repo creation error: {phabricator_url}: {e}")
+        pytest.skip(f"Phabricator repo creation error: {url}: {e}")
 
     yield repo_name
 
     try:
-        response = phabricator_session.post(
-            phabricator_url.join("/api/diffusion.repository.search"),
+        response = session.post(
+            url.join("/api/diffusion.repository.search"),
             data={"constraints": {"shortNames": [repo_name]}},
         )
         response.raise_for_status()
@@ -97,8 +97,8 @@ def phabricator_repo(
         repos = result.get("result", {}).get("data", [])
         if repos:
             repo_phid = repos[0]["phid"]
-            response = phabricator_session.post(
-                phabricator_url.join("/api/diffusion.repository.edit"),
+            response = session.post(
+                url.join("/api/diffusion.repository.edit"),
                 data={
                     "objectIdentifier": repo_phid,
                     "transactions": [{"type": "status", "value": "inactive"}],
@@ -106,24 +106,24 @@ def phabricator_repo(
             )
             response.raise_for_status()
     except Exception as e:
-        pytest.skip(f"Phabricator repo deletion error: {phabricator_url}: {e}")
+        pytest.skip(f"Phabricator repo deletion error: {url}: {e}")
 
 
 @pytest.fixture
-def phabricator_clone(
-    phabricator_url: httpx.URL,
-    phabricator_repo: str,
+def clone(
+    url: httpx.URL,
+    repo: str,
 ) -> Generator[Path, None, None]:
     tmp_dir = tempfile.mkdtemp(prefix="jjpr_phab_")
     original_dir = os.getcwd()
 
     try:
         os.chdir(tmp_dir)
-        run_cmd("git", "clone", f"{phabricator_url}/{phabricator_repo}.git", ".")
+        run_cmd("git", "clone", f"{url}/{repo}.git", ".")
         run_cmd("jj", "git", "init", ".")
         data = {
-            "phabricator.uri": str(phabricator_url),
-            "repository.callsign": f"ZTST{phabricator_repo[-4:].upper()}",
+            "phabricator.uri": str(url),
+            "repository.callsign": f"ZTST{repo[-4:].upper()}",
         }
         Path(".arcconfig").write_text(json.dumps(data))
         run_cmd("jj", "commit", "-m", "Initial commit with .arcconfig")

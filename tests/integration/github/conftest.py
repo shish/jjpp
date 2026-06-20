@@ -13,24 +13,24 @@ from ...conftest import run_cmd
 
 
 @pytest.fixture(scope="session")
-def github_url() -> httpx.URL:
+def url() -> httpx.URL:
     """Get the GitHub URL from the environment variable or use a default."""
     return httpx.URL(os.getenv("GITHUB_URL", "https://github.com"))
 
 
 @pytest.fixture(scope="session")
-def github_api_url(github_url: httpx.URL) -> httpx.URL:
+def api_url(url: httpx.URL) -> httpx.URL:
     """Get the GitHub API URL based on the GitHub URL."""
-    if github_url.host == "github.com":
+    if url.host == "github.com":
         return httpx.URL("https://api.github.com")
     else:
-        # For GitHub Enterprise, API is at {github_url}/api/v3
-        return github_url.join("/api/v3")
+        # For GitHub Enterprise, API is at {url}/api/v3
+        return url.join("/api/v3/")
 
 
 @pytest.fixture(scope="session")
-def github_session(
-    github_api_url: httpx.URL,
+def session(
+    api_url: httpx.URL,
 ) -> Generator[httpx.Client, None, None]:
     """Create and validate a GitHub API session."""
     token = os.getenv("GITHUB_TOKEN")
@@ -47,7 +47,7 @@ def github_session(
 
     # Check that the client works
     try:
-        response = client.get(github_api_url.join("/user"))
+        response = client.get(api_url.join("user"))
         response.raise_for_status()
     except Exception as e:
         pytest.skip(f"GitHub API error or invalid token: {e}")
@@ -57,10 +57,10 @@ def github_session(
 
 
 @pytest.fixture
-def github_repo(
-    github_url: httpx.URL,
-    github_api_url: httpx.URL,
-    github_session: httpx.Client,
+def repo(
+    url: httpx.URL,
+    api_url: httpx.URL,
+    session: httpx.Client,
 ) -> Generator[str, None, None]:
     """Create and cleanup a test repository on GitHub."""
     rand = "".join(random.choices(string.ascii_lowercase, k=4))
@@ -68,15 +68,15 @@ def github_repo(
 
     # Get the current username from the API
     try:
-        user_response = github_session.get(github_api_url.join("/user"))
+        user_response = session.get(api_url.join("user"))
         user_response.raise_for_status()
         github_username = user_response.json()["login"]
     except Exception as e:
         pytest.skip(f"Failed to get GitHub username: {e}")
 
     try:
-        response = github_session.post(
-            github_api_url.join("/user/repos"),
+        response = session.post(
+            api_url.join("user/repos"),
             json={
                 "name": repo_name,
                 "description": "Test repository for jj-pr integration tests",
@@ -86,25 +86,23 @@ def github_repo(
         )
         response.raise_for_status()
     except Exception as e:
-        pytest.skip(f"GitHub repo creation error: {github_url}: {e}")
+        pytest.skip(f"GitHub repo creation error: {url}: {e}")
 
     # import time
     # time.sleep(60)
     yield f"{github_username}/{repo_name}"
 
     try:
-        response = github_session.delete(
-            github_api_url.join(f"/repos/{github_username}/{repo_name}")
-        )
+        response = session.delete(api_url.join(f"repos/{github_username}/{repo_name}"))
         response.raise_for_status()
     except Exception as e:
-        pytest.skip(f"GitHub repo deletion error: {github_url}: {e}")
+        pytest.skip(f"GitHub repo deletion error: {url}: {e}")
 
 
 @pytest.fixture
-def github_clone(
-    github_url: httpx.URL,
-    github_repo: str,
+def clone(
+    url: httpx.URL,
+    repo: str,
 ) -> Generator[Path, None, None]:
     """Clone a test GitHub repository and initialize it with jj."""
     tmp_dir = tempfile.mkdtemp(prefix="jjpr_ghub_")
@@ -112,7 +110,7 @@ def github_clone(
 
     try:
         os.chdir(tmp_dir)
-        run_cmd("git", "clone", f"{github_url}/{github_repo}.git", ".")
+        run_cmd("git", "clone", f"{url}/{repo}.git", ".")
         run_cmd("jj", "git", "init", ".")
         yield Path(tmp_dir)
     finally:

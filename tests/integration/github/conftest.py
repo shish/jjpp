@@ -52,8 +52,10 @@ def session(
     except Exception as e:
         pytest.skip(f"GitHub API error or invalid token: {e}")
 
-    yield client
-    client.close()
+    try:
+        yield client
+    finally:
+        client.close()
 
 
 @pytest.fixture
@@ -90,13 +92,11 @@ def repo(
 
     # import time
     # time.sleep(60)
-    yield f"{github_username}/{repo_name}"
-
     try:
+        yield f"{github_username}/{repo_name}"
+    finally:
         response = session.delete(api_url.join(f"repos/{github_username}/{repo_name}"))
         response.raise_for_status()
-    except Exception as e:
-        pytest.skip(f"GitHub repo deletion error: {url}: {e}")
 
 
 @pytest.fixture

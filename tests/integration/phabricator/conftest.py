@@ -47,8 +47,10 @@ def session(
     except Exception as e:
         pytest.skip(f"Invalid Phabricator API token or unable to authenticate: {e}")
 
-    yield client
-    client.close()
+    try:
+        yield client
+    finally:
+        client.close()
 
 
 @pytest.fixture
@@ -80,9 +82,9 @@ def repo(
     except Exception as e:
         pytest.skip(f"Phabricator repo creation error: {url}: {e}")
 
-    yield repo_name
-
     try:
+        yield repo_name
+    finally:
         response = session.post(
             url.join("/api/diffusion.repository.search"),
             data={"constraints": {"shortNames": [repo_name]}},
@@ -105,8 +107,6 @@ def repo(
                 },
             )
             response.raise_for_status()
-    except Exception as e:
-        pytest.skip(f"Phabricator repo deletion error: {url}: {e}")
 
 
 @pytest.fixture

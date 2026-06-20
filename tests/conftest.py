@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Generator, Union
 
 import pytest
+from filelock import FileLock
 
 log = logging.getLogger(__name__)
 
@@ -39,19 +40,21 @@ def tmp_home() -> Generator[Path, None, None]:
     original_home = os.environ.get("HOME", "")
     os.environ["HOME"] = tmp_dir
     try:
-        # configure .gitrc
-        run_cmd("git", "config", "user.email", "test@example.com")
-        run_cmd("git", "config", "user.name", "Test User")
+        home_lock = Path(tmp_dir) / ".jjpr-lock"
+        with FileLock(home_lock):
+            # configure .gitrc
+            run_cmd("git", "config", "user.email", "test@example.com")
+            run_cmd("git", "config", "user.name", "Test User")
 
-        # configure jj
-        run_cmd(
-            "jj",
-            "config",
-            "set",
-            "--user",
-            "aliases.pr",
-            json.dumps(["util", "exec", "--", shutil.which("jj-pr")]),
-        )
+            # configure jj
+            run_cmd(
+                "jj",
+                "config",
+                "set",
+                "--user",
+                "aliases.pr",
+                json.dumps(["util", "exec", "--", shutil.which("jj-pr")]),
+            )
 
         yield Path(tmp_dir)
     finally:

@@ -116,7 +116,6 @@ class Phabricator(Forge):
         log.info(f"Pushing {ref} ({changes})")
         for change_id in changes:
             self._push_one(change_id, draft=draft, message=message)
-            self._set_parents(change_id)
 
     def _push_one(
         self,
@@ -124,16 +123,60 @@ class Phabricator(Forge):
         draft: bool = False,
         message: Optional[str] = None,
     ) -> None:
-        with jj.with_new(change_id):
-            log.info(f"Pushing {change_id}")
-            utils.run(["git", "log"], cap=True)
-            utils.run(["jj", "log"], cap=True)
-            args = ["arc", "diff", "HEAD^"]
-            if draft:
-                args.append("--draft")
-            if message:
-                args.extend(["--message", message])
-            utils.run(args, cap=False)
+        log.info(f"Pushing {change_id}")
+        rev = self._change_to_revision(change_id)
+        if rev:
+            log.info(f"Updating revision D{rev} for {change_id}")
+        else:
+            log.info(f"Creating new revision for {change_id}")
+
+        parents = jj.change_ids(f"{change_id}- & mutable()")
+        parent_revs = [self._change_to_revision(p) for p in parents]
+        parent_revs = [p for p in parent_revs if p is not None]
+        parent_phids = [self._revision_to_phid(p) for p in parent_revs]
+
+        diff_id = self.client.post(
+            "differential.createrawdiff",
+            data={
+                "diff": jj.run("diff", "--git", "-r", change_id),
+                "repositoryPHID": self._callsign_to_phid(self.project_id),
+            },
+        ).json()["result"]["phid"]
+
+        data: dict[str, Any] = {
+            "transactions": [
+                {"type": "update", "value": diff_id},
+                {"type": "parents.set", "value": parent_phids},
+            ],
+        }
+
+        if rev:
+            data["objectIdentifier"] = self._revision_to_phid(rev)
+        else:
+            data["transactions"].extend(
+                self.client.post(
+                    "differential.parsecommitmessage",
+                    data={"corpus": jj.description_of(change_id)},
+                ).json()["result"]["transactions"]
+            )
+
+        if draft:
+            data["transactions"].append({"type": "draft", "value": "true"})
+
+        revision_id = self.client.post(
+            "differential.revision.edit",
+            data=data,
+        ).json()["result"]["object"]["id"]
+
+        # TODO: add a message if -m is passed
+        if not rev:
+            jj.describe(
+                r=change_id,
+                m=(
+                    jj.description_of(change_id)
+                    + f"\n\nDifferential Revision: {self.forge_url}/D{revision_id}"
+                ),
+            )
 
     def _change_to_revision(self, change_id: jj.ChangeID) -> Optional[PhRev]:
         d = jj.description_of(change_id)
@@ -150,22 +193,11 @@ class Phabricator(Forge):
             raise utils.UserError(f"Revision D{revision} not found")
         return result["data"][0]["phid"]
 
-    def _set_parents(self, change_id: jj.ChangeID) -> None:
-        parents = jj.change_ids(f"{change_id}- & mutable()")
-        parent_revs = [self._change_to_revision(p) for p in parents]
-        parent_revs = [p for p in parent_revs if p is not None]
-        parent_phids = [self._revision_to_phid(p) for p in parent_revs]
-        pstr = ", ".join(f"D{p}" for p in parent_revs)
-        log.info(f"Setting parent revisions for {change_id}: {pstr}")
-        self.client.post(
-            "differential.revision.edit",
-            params={
-                "objectIdentifier": self._change_to_revision(change_id),
-                "transactions": [
-                    {"type": "parents.set", "value": parent_phids},
-                ],
-            },
-        )
+    def _callsign_to_phid(self, callsign: str) -> PhID:
+        return self.client.post(
+            "diffusion.repository.search",
+            params={"constraints": {"callsigns": [callsign]}},
+        ).json()["result"]["data"][0]["phid"]
 
     def checkout(self, identifier: str) -> None:
         log.info(f"Checking out Phabricator diff {identifier}")
@@ -191,10 +223,7 @@ class Phabricator(Forge):
         }
         if not all_projects:
             rev_constraints["constraints"]["repositoryPHIDs"] = [
-                self.client.post(
-                    "diffusion.repository.search",
-                    params={"constraints": {"callsigns": [self.project_id]}},
-                ).json()["result"]["data"][0]["phid"]
+                self._callsign_to_phid(self.project_id)
             ]
         revs = self.client.post(
             "differential.revision.search",

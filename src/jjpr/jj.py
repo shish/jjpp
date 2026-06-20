@@ -48,6 +48,10 @@ def bookmark_create(name: str, r: RevSet) -> None:
     run("bookmark", "create", name, "-r", r, cap=False)
 
 
+def describe(r: ChangeID, m: str) -> None:
+    run("describe", "-r", r, "-m", m)
+
+
 def gerrit_upload(
     r: str,
     wip: bool = False,

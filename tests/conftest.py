@@ -41,14 +41,18 @@ def tmp_home() -> Generator[Path, None, None]:
     """Create a temporary home directory for tests."""
     tmp_dir = tempfile.mkdtemp(prefix="jjpr_home_")
     original_home = os.environ.get("HOME", "")
+    original_cwd = os.getcwd()
     os.environ["HOME"] = tmp_dir
     os.environ["GIT_TERMINAL_PROMPT"] = "0"  # Disable git credential prompts
+    os.chdir(tmp_dir)
     try:
         home_lock = Path(tmp_dir) / ".jjpr-lock"
         with FileLock(home_lock):
             # configure .gitrc
-            run_cmd("git", "config", "user.email", "test@example.com")
-            run_cmd("git", "config", "user.name", "Test User")
+            run_cmd(
+                "git", "config", "set", "--global", "user.email", "test@example.com"
+            )
+            run_cmd("git", "config", "set", "--global", "user.name", "Test User")
 
             # configure jj
             run_cmd(
@@ -62,6 +66,7 @@ def tmp_home() -> Generator[Path, None, None]:
 
         yield Path(tmp_dir)
     finally:
+        os.chdir(original_cwd)
         os.environ["HOME"] = original_home
         shutil.rmtree(tmp_dir, ignore_errors=True)
 

@@ -68,6 +68,19 @@ class TestPush:
         assert js[0]["title"] == "Test commit 2"
         assert js[1]["title"] == "Test commit 1"
 
+    def test_push_two_skipping_one(self, clone: Path):
+        (clone / "test_file.txt").write_text("Test content")
+        run_cmd("jj", "commit", "-m", "Test commit 1")
+
+        (clone / "test_file2.txt").write_text("Test content 2")
+        run_cmd("jj", "commit", "-m", "Test commit 2")
+
+        run_cmd("jj", "pr", "push", "@")
+
+        js = json.loads(run_cmd("jj", "pr", "--format", "json", "list"))
+        assert len(js) == 1
+        assert js[0]["title"] == "Test commit 2"
+
 
 class TestLog:
     def test_log(self, clone: Path):

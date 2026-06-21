@@ -5,7 +5,7 @@ from ...conftest import run_cmd
 
 
 class TestGithubPush:
-    def test_pr_push_one_head(self, clone: Path):
+    def test_push_one_head(self, clone: Path):
         (clone / "test_file.txt").write_text("Test content")
         run_cmd("jj", "commit", "-m", "Test commit 1")
         run_cmd("jj", "pr", "push")
@@ -14,7 +14,7 @@ class TestGithubPush:
         assert len(js) == 1
         assert js[0]["title"] == "Test commit 1"
 
-    def test_pr_push_one_cwd(self, clone: Path):
+    def test_push_one_cwd(self, clone: Path):
         (clone / "test_file.txt").write_text("Test content")
         run_cmd("jj", "commit", "-m", "Test commit 1")
         run_cmd("jj", "pr", "push")
@@ -23,7 +23,7 @@ class TestGithubPush:
         assert len(js) == 1
         assert js[0]["title"] == "Test commit 1"
 
-    def test_pr_push_one_then_two(self, clone: Path):
+    def test_push_one_then_two(self, clone: Path):
         (clone / "test_file.txt").write_text("Test content")
         run_cmd("jj", "commit", "-m", "Test commit 1")
         run_cmd("jj", "pr", "push")
@@ -36,7 +36,9 @@ class TestGithubPush:
         assert len(js) == 1
         assert js[0]["title"] == "Test commit 1"
 
-    def test_pr_push_two_at_once(self, clone: Path):
+    def test_push_two_at_once(self, clone: Path):
+        # github is branch-based, so pushing two commits at once will
+        # only create a PR for the top commit
         (clone / "test_file.txt").write_text("Test content")
         run_cmd("jj", "commit", "-m", "Test commit 1")
 

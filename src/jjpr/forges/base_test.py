@@ -3,7 +3,7 @@ from typing import Optional
 
 import httpx
 
-from jjpr.forges.base import CRListItem, Forge
+from .base import CRListItem, Forge
 
 log = logging.getLogger(__name__)
 
@@ -36,6 +36,7 @@ class TestForgeProperties:
         assert str(f.forge_url) == "https://github.com"
         assert f.project_id == "owner/repo"
 
-    def test_project_id_https_github_no_git_suffix(self):
-        f = DummyForge("origin", httpx.URL("https://github.com/owner/repo"))
+    def test_project_url_ssh(self):
+        f = DummyForge("origin", httpx.URL("ssh://git@github.com/owner/repo.git"))
+        assert str(f.forge_url) == "https://github.com"
         assert f.project_id == "owner/repo"

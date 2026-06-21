@@ -11,13 +11,13 @@ import pytest
 from ...conftest import run_cmd, tmp_cwd
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="class")
 def url() -> httpx.URL:
     """Get the GitHub URL from the environment variable or use a default."""
     return httpx.URL(os.getenv("JJPR_TEST_GITHUB_URL", "https://github.com"))
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="class")
 def api_url(url: httpx.URL) -> httpx.URL:
     """Get the GitHub API URL based on the GitHub URL."""
     if url.host == "github.com":
@@ -27,7 +27,7 @@ def api_url(url: httpx.URL) -> httpx.URL:
         return url.join("/api/v3/")
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="class")
 def session(
     api_url: httpx.URL,
 ) -> Generator[httpx.Client, None, None]:

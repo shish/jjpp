@@ -89,7 +89,7 @@ def _create_dotfiles() -> None:
     )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="class")
 def tmp_home() -> Generator[Path, None, None]:
     """Create a temporary home directory for tests, with git & jj configured."""
     original_home = os.environ.get("HOME", "")

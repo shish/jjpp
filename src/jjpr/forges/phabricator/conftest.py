@@ -14,7 +14,7 @@ from ...conftest import run_cmd, tmp_cwd
 from .client import PhabricatorClient
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="class")
 def url() -> httpx.URL:
     """Get the Phabricator URL from the environment variable or use a default."""
     return httpx.URL(
@@ -22,7 +22,7 @@ def url() -> httpx.URL:
     )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="class")
 def session(
     tmp_home: Path,
     url: httpx.URL,

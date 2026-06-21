@@ -11,13 +11,13 @@ from ...conftest import run_cmd, tmp_cwd
 from .client import GerritClient
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="class")
 def url() -> httpx.URL:
     """Get the Gerrit URL from the environment variable or use a default."""
     return httpx.URL(os.getenv("JJPR_TEST_GERRIT_URL", "http://gerrit.localhost:8080"))
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="class")
 def session(
     tmp_home: Path,
     url: httpx.URL,

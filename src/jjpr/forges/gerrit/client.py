@@ -19,14 +19,15 @@ class GerritClient(httpx.Client):
     """
 
     def __init__(self, base_url: httpx.URL) -> None:
-        headers = _get_auth_header(base_url.host)
-        if not headers:
+        auth = _get_auth(str(base_url.host))
+        if not auth:
             raise exc.UserError(
                 f"Could not find credentials for {base_url.host} in ~/.netrc"
             )
+        cred = base64.b64encode(f"{auth[0]}:{auth[1]}".encode()).decode()
         super().__init__(
             base_url=base_url.copy_with(path="/a/"),
-            headers=headers,
+            headers={"Authorization": f"Basic {cred}"},
         )
 
     def request(self, *args, **kwargs) -> httpx.Response:
@@ -53,15 +54,11 @@ class GerritClient(httpx.Client):
         return response
 
 
-def _get_auth_header(hostname: str | None) -> dict | None:
+def _get_auth(hostname: str) -> tuple[str, str] | None:
     try:
         rc = netrc.netrc()
     except (FileNotFoundError, netrc.NetrcParseError) as e:
         log.warning(f"Could not get creds from netrc file: {e}")
-        return None
-
-    if not hostname:
-        log.warning("Could not determine hostname from forge_url")
         return None
 
     auth = rc.authenticators(hostname)
@@ -74,5 +71,4 @@ def _get_auth_header(hostname: str | None) -> dict | None:
         log.warning(f"Empty password in netrc for {hostname}")
         return None
 
-    credentials = base64.b64encode(f"{login}:{password}".encode()).decode()
-    return {"Authorization": f"Basic {credentials}"}
+    return (login, password)

@@ -26,7 +26,7 @@ def url() -> httpx.URL:
 def session(
     tmp_home: Path,
     url: httpx.URL,
-) -> Generator[httpx.Client, None, None]:
+) -> Generator[PhabricatorClient, None, None]:
     # configure .arcrc
     phabricator_token = os.getenv("JJPR_TEST_PHABRICATOR_API_TOKEN")
     if not phabricator_token:
@@ -49,17 +49,14 @@ def session(
     client = PhabricatorClient(url)
 
     # check that the client works
+    if not shutil.which("arc"):
+        pytest.skip("`arc` command not found, skipping tests")
     try:
-        if not shutil.which("arc"):
-            pytest.skip("`arc` command not found, skipping tests")
-        try:
-            data = client.post("user.whoami").json()["result"]
-            assert data["userName"] == "admin"
-        except Exception as e:
-            pytest.skip(f"Phabricator server seems broken, skipping tests: {e}")
-        yield client
-    finally:
-        client.close()
+        data = client.call("user.whoami")
+        assert data["userName"] == "admin"
+    except Exception as e:
+        pytest.skip(f"Phabricator server seems broken, skipping tests: {e}")
+    yield client
 
 
 @pytest.fixture

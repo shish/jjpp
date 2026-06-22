@@ -69,13 +69,11 @@ class Phabricator(Forge):
             data["objectIdentifier"] = self._revision_to_phid(rev)
 
         # Attach a diff
-        diff_id = self.client.post(
+        diff_id = self.client.call(
             "differential.createrawdiff",
-            data={
-                "diff": jj.run("diff", "--git", "-r", change_id),
-                "repositoryPHID": self._callsign_to_phid(self.project_id),
-            },
-        ).json()["result"]["phid"]
+            diff=jj.run("diff", "--git", "-r", change_id),
+            repositoryPHID=self._callsign_to_phid(self.project_id),
+        )["phid"]
         data["transactions"].append({"type": "update", "value": diff_id})
 
         # Set parent diff if our parent commit contains a diff ID
@@ -88,10 +86,10 @@ class Phabricator(Forge):
 
         # If we're creating a new rev, populate the metadata from the commit message
         if not rev:
-            ts = self.client.post(
+            ts = self.client.call(
                 "differential.parsecommitmessage",
-                data={"corpus": jj.description_of(change_id)},
-            ).json()["result"]["transactions"]
+                corpus=jj.description_of(change_id),
+            )["transactions"]
             for r in {"title", "summary", "testPlan"}:
                 for t in ts:
                     if t["type"] == r:
@@ -105,10 +103,10 @@ class Phabricator(Forge):
             data["transactions"].append({"type": "draft", "value": "true"})
 
         # Submit the new revision
-        revision_id = self.client.post(
+        revision_id = self.client.call(
             "differential.revision.edit",
-            data=data,
-        ).json()["result"]["object"]["id"]
+            **data,
+        )["object"]["id"]
 
         # TODO: add a message if -m is passed
 
@@ -132,19 +130,19 @@ class Phabricator(Forge):
         return None
 
     def _revision_to_phid(self, revision: PhRev) -> PhID:
-        result = self.client.post(
+        result = self.client.call(
             "differential.revision.search",
-            data={"constraints": {"ids": [revision]}},
-        ).json()["result"]
+            constraints={"ids": [revision]},
+        )
         if not result["data"]:
             raise exc.UserError(f"Revision D{revision} not found")
         return result["data"][0]["phid"]
 
     def _callsign_to_phid(self, callsign: str) -> PhID:
-        return self.client.post(
+        return self.client.call(
             "diffusion.repository.search",
-            data={"constraints": {"callsigns": [callsign]}},
-        ).json()["result"]["data"][0]["phid"]
+            constraints={"callsigns": [callsign]},
+        )["data"][0]["phid"]
 
     def checkout(self, identifier: str) -> None:
         log.info(f"Checking out Phabricator diff {identifier}")
@@ -155,27 +153,25 @@ class Phabricator(Forge):
             f"Listing diffs for {self.remote_url} ({'*' if all_projects else self.project_id})"
         )
 
-        myPHID = self.client.post("user.whoami").json()["result"]["phid"]
+        myPHID = self.client.call("user.whoami")["phid"]
         rev_constraints = {
-            "constraints": {
-                "authorPHIDs": [myPHID],
-                "statuses": [
-                    "draft",
-                    "needs-review",
-                    "needs-revision",
-                    "accepted",
-                    "changes-planned",
-                ],
-            }
+            "authorPHIDs": [myPHID],
+            "statuses": [
+                "draft",
+                "needs-review",
+                "needs-revision",
+                "accepted",
+                "changes-planned",
+            ],
         }
         if not all_projects:
-            rev_constraints["constraints"]["repositoryPHIDs"] = [
+            rev_constraints["repositoryPHIDs"] = [
                 self._callsign_to_phid(self.project_id)
             ]
-        revs = self.client.post(
+        revs = self.client.call(
             "differential.revision.search",
-            data=rev_constraints,
-        ).json()["result"]["data"]
+            constraints=rev_constraints,
+        )["data"]
 
         return [
             CRListItem(

@@ -136,37 +136,34 @@ class GitHub(Forge):
                     identifier=str(pr["number"]),
                     title=pr["title"],
                     url=httpx.URL(pr["url"]),
-                    state=self._colour_state(
-                        pr["state"], is_draft=is_draft, reviews=reviews
-                    ),
+                    state=_colour_state(is_draft=is_draft, reviews=reviews),
                     blockers=blockers,
                 )
             )
         return crs
 
-    def _colour_state(
-        self, state: str, is_draft: bool = False, reviews: Optional[List[Any]] = None
-    ) -> str:
-        if reviews is None:
-            reviews = []
 
-        # Determine display state based on draft and review status
-        if is_draft:
-            display_state = "Draft"
-            color = "cyan"
+def _colour_state(is_draft: bool = False, reviews: Optional[List[Any]] = None) -> str:
+    if reviews is None:
+        reviews = []
+
+    # Determine display state based on draft and review status
+    if is_draft:
+        display_state = "Draft"
+        color = "cyan"
+    else:
+        # Check review status
+        has_approved = any(r.get("state") == "APPROVED" for r in reviews)
+        has_rejected = any(r.get("state") == "CHANGES_REQUESTED" for r in reviews)
+
+        if has_rejected:
+            display_state = "Rejected"
+            color = "red"
+        elif has_approved:
+            display_state = "Accepted"
+            color = "green"
         else:
-            # Check review status
-            has_approved = any(r.get("state") == "APPROVED" for r in reviews)
-            has_rejected = any(r.get("state") == "CHANGES_REQUESTED" for r in reviews)
+            display_state = "Needs Review"
+            color = "yellow"
 
-            if has_rejected:
-                display_state = "Rejected"
-                color = "red"
-            elif has_approved:
-                display_state = "Accepted"
-                color = "green"
-            else:
-                display_state = "Needs Review"
-                color = "yellow"
-
-        return f"[{color}]{display_state}[/{color}]"
+    return f"[{color}]{display_state}[/{color}]"

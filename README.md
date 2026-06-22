@@ -4,6 +4,10 @@ Because I'm regularly using github, gerrit, and phabricator, and I don't like an
 
 I really just want `jj pr pull` to bring me up to date with remote changes, and `jj pr push` to push my local changes for review - automatically Doing The Right Thing (eg updating existing reviews vs creating new ones), working consistently across forges.
 
+As a bonus, `jj pr list` to get a list of my open reviews, and `jj pr log` to get `jj log` output annotated with review status.
+
+![jj pr log output showing review status](.github/log.png)
+
 ## Features
 
 * `jj pr pull` - pull remote trunk and rebase current stack on top of it
@@ -15,7 +19,8 @@ I really just want `jj pr pull` to bring me up to date with remote changes, and 
   * github will create a new `pr/XYZ` branch, send that branch for review, and update that branch on subsequent pushes
   * `jj pr push <change id>` - push an individual commit
 * `jj pr list` - list open PRs/CRs/Diffs for the current project
-  * `jj pr list --all-projects` - list open CRs/Diffs for all projects on the forge 
+  * `jj pr list --all-projects` - list open CRs/Diffs for all projects on the forge
+* `jj pr log` - show `jj log` output annotated with review status
 * `jj pr pre-commit` - run pre-commit hooks on all commits in the current stack
   * `jj pr pre-commit <change id>` - run pre-commit hooks on a specific change
 * `jj pr checkout <pr/cr/diff>` - pull a specific PR/CR/Diff from the forge
@@ -23,7 +28,7 @@ I really just want `jj pr pull` to bring me up to date with remote changes, and 
 ## Workflow
 
 * `jj pr pull --all` - start the day by pulling remote changes and rebasing all my local stacks on top of them
-* `jj pr list` - check for any reviews which need attention
+* `jj pr list` / `jj pr log` - check for any reviews which need attention
 
 ### If I want to work on a new feature
 

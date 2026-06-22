@@ -71,6 +71,7 @@ services:
             bin/config set mysql.user root
             bin/config set mysql.pass phabricator
             bin/config set phabricator.base-uri http://phab.localhost:8081/
+            bin/config set differential.allow-self-accept true
             # enable http server for diffusion (git) repositories
             bin/config set diffusion.allow-http-auth true
             bin/config set environment.append-paths '["/usr/lib/git-core"]'

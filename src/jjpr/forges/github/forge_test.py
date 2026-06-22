@@ -15,7 +15,7 @@ class TestMeta:
         assert f.project_id == "example/repo"
 
 
-class TestGithubPush:
+class TestPush:
     def test_push_one_head(self, clone: Path):
         (clone / "test_file.txt").write_text("Test content")
         run_cmd("jj", "commit", "-m", "Test commit 1")
@@ -61,3 +61,14 @@ class TestGithubPush:
         js = json.loads(run_cmd("jj", "pr", "--format", "json", "list"))
         assert len(js) == 1
         assert js[0]["title"] == "Test commit 2"
+
+
+class TestLog:
+    def test_log(self, clone: Path):
+        (clone / "test_file.txt").write_text("Test content")
+        run_cmd("jj", "commit", "-m", "Test commit 1")
+        run_cmd("jj", "pr", "push")
+
+        log_output = run_cmd("jj", "pr", "log")
+        assert "Test commit 1" in log_output
+        assert "Needs Review" in log_output

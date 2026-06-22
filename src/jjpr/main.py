@@ -172,6 +172,15 @@ def pre_commit_command(
         cmds.pre_commit_stack(ref)
 
 
+@app.command("log")
+def log_command(
+    ctx: typer.Context,
+) -> None:
+    r = t.cast(GlobalOptions, ctx.obj).repo
+    with r.chdir():
+        print(r.forge.log(ctx.args))
+
+
 def run() -> None:
     try:
         app()

@@ -84,6 +84,10 @@ def git_push(remote: str, bookmark: str) -> None:
     run("git", "push", "--remote", remote, "--bookmark", bookmark, cap=False)
 
 
+def log_(*args) -> str:
+    return run("log", *args, cap=True)
+
+
 def rebase(d: RevSet, r: RevSet) -> None:
     run("rebase", "--skip-emptied", "-d", d, "-r", r, cap=False)
 

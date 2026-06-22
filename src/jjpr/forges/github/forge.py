@@ -146,9 +146,36 @@ class GitHub(Forge):
             )
         return crs
 
+    def log(self, args: list[str]) -> str:
+        cmd = [
+            "gh",
+            "pr",
+            "list",
+            "--repo",
+            str(self.remote_url),
+            "--json",
+            "url,isDraft,reviews,headRefName",
+        ]
+        prs = json.loads(exec.run(cmd))
+        id_to_state = {}
+        for pr in prs:
+            is_draft = pr.get("isDraft", False)
+            reviews = pr.get("reviews", [])
+            url = httpx.URL(pr["url"])
+            state = _colour_state(is_draft=is_draft, reviews=reviews, url=url)
+            id_to_state[pr["headRefName"]] = state
+            id_to_state[pr["headRefName"] + "@" + self.remote] = state
+        return self._log(
+            args,
+            'commit.bookmarks().join(",")',
+            id_to_state,
+        )
+
 
 def _colour_state(
-    is_draft: bool = False, reviews: list[t.Any] | None = None
+    is_draft: bool = False,
+    reviews: list[t.Any] | None = None,
+    url: httpx.URL | None = None,
 ) -> cr.State:
     if reviews is None:
         reviews = []
@@ -172,4 +199,4 @@ def _colour_state(
             display_state = "Needs Review"
             color = "yellow"
 
-    return cr.State(display_state, color=color)
+    return cr.State(display_state, color=color, url=url)

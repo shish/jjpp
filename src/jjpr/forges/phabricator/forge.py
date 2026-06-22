@@ -176,22 +176,58 @@ class Phabricator(Forge):
                 forge=self,
                 cr_id=str(rev["id"]),
                 title=cr.Title(
-                    rev["fields"]["title"], url=httpx.URL(rev["fields"]["uri"])
+                    text=rev["fields"]["title"],
+                    url=httpx.URL(rev["fields"]["uri"]),
                 ),
-                state=_colour_state(rev["fields"]["status"]["name"]),
+                state=_colour_state(
+                    state=rev["fields"]["status"]["name"],
+                    url=httpx.URL(rev["fields"]["uri"]),
+                ),
                 blockers=[],
             )
             for rev in revs
         ]
 
+    def log(self, args: list[str]) -> str:
+        revs = self.client.call(
+            "differential.revision.search",
+            constraints={
+                "authorPHIDs": [self.client.call("user.whoami")["phid"]],
+                "repositoryPHIDs": [self._callsign_to_phid(self.project_id)],
+                "statuses": [
+                    "draft",
+                    "needs-review",
+                    "needs-revision",
+                    "accepted",
+                    "changes-planned",
+                ],
+            },
+        )["data"]
+        id_to_state = {}
+        for rev in revs:
+            id_to_state[f"D{rev['id']}"] = _colour_state(
+                state=rev["fields"]["status"]["name"],
+                url=httpx.URL(rev["fields"]["uri"]),
+            )
+        return self._log(
+            args,
+            """
+            commit.description()
+                .lines()
+                .filter(|line| line.starts_with("Differential Revision: "))
+                .map(|line| line.match(regex:"D[0-9]+"))
+                .join(",")
+            """,
+            id_to_state,
+        )
 
-def _colour_state(state: str) -> cr.State:
-    s2c = {
+
+def _colour_state(state: str, url: httpx.URL) -> cr.State:
+    c = {
         "Draft": "cyan",
         "Changes Planned": "cyan",
         "Rejected": "red",
         "Needs Review": "yellow",
         "Accepted": "green",
-    }
-    c = s2c.get(state, "yellow")
-    return cr.State(state, color=c)
+    }.get(state, "yellow")
+    return cr.State(state, color=c, url=url)

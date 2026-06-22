@@ -1,8 +1,9 @@
 import logging
+import re
 from abc import ABC, abstractmethod
 
-from ..utils import git
-from .cr import CodeReview
+from ..utils import git, jj, text
+from . import cr
 
 log = logging.getLogger(__name__)
 
@@ -46,5 +47,27 @@ class Forge(ABC):
         """Checkout changes from the forge."""
 
     @abstractmethod
-    def list_crs(self, all_projects: bool = False) -> list[CodeReview]:
+    def list_crs(self, all_projects: bool = False) -> list[cr.CodeReview]:
         """List items on the forge, returning a list of CRListItem objects."""
+
+    def _log(
+        self, args: list[str], template: str, id_to_state: dict[str, cr.State]
+    ) -> str:
+        logdata = jj.log_(
+            "--color",
+            "always",
+            "--config",
+            f"template-aliases.\"format_commit_labels(commit)\"='''\"JJPR:\"++{template}++\":JJPR\"'''",
+            *args,
+        )
+        log.debug(f"Updating log output with PRs: {id_to_state}")
+        logdata = re.sub(
+            r"JJPR:([^:]*):JJPR",
+            lambda x: str(id_to_state.get(text.remove_ansi(x.group(1)), "")),
+            logdata,
+        )
+        return logdata
+
+    @abstractmethod
+    def log(self, args: list[str]) -> str:
+        """Run `jj log` with annotated extra output for the forge."""

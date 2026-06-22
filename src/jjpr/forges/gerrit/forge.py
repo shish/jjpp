@@ -105,6 +105,7 @@ class Gerrit(Forge):
                         is_private=change.get("is_private", False),
                         work_in_progress=change.get("work_in_progress", False),
                         blockers=len(blockers) > 0,
+                        url=self.forge_url.join(f"/c/{change['_number']}"),
                     ),
                     blockers=blockers,
                 )
@@ -112,11 +113,36 @@ class Gerrit(Forge):
 
         return crs
 
+    def log(self, args: list[str]) -> str:
+        # Fetch "my open reviews and their status" from gerrit,
+        # index them by change ID
+        query = f"owner:self+status:open+project:{self.project_id}"
+        changes_response = self.client.get(
+            f"changes/?q={query}&o=SUBMIT_REQUIREMENTS&o=DETAILED_ACCOUNTS"
+        ).json()
+        id_to_state = {}
+        for change in changes_response:
+            blockers = []
+            for req in change.get("submit_requirements", []):
+                if req["status"] not in {"SATISFIED", "NOT_APPLICABLE"}:
+                    req_name = re.sub("[^A-Z]+", "", req["name"])
+                    blockers.append(req_name)
+            id_to_state[str(change["change_id"])] = _colour_state(
+                is_private=change.get("is_private", False),
+                work_in_progress=change.get("work_in_progress", False),
+                blockers=len(blockers) > 0,
+                url=self.forge_url.join(f"/c/{change['_number']}"),
+            )
+        return self._log(
+            args, '"I" ++ commit.change_id().normal_hex() ++"6a6a6964"', id_to_state
+        )
+
 
 def _colour_state(
     is_private: bool = False,
     work_in_progress: bool = False,
     blockers: bool = False,
+    url: httpx.URL | None = None,
 ) -> cr.State:
     if is_private:
         state = "Private"
@@ -131,4 +157,4 @@ def _colour_state(
         state = "Accepted"
         color = "green"
 
-    return cr.State(state, color=color)
+    return cr.State(state, color=color, url=url)

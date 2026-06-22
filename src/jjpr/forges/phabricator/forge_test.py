@@ -30,7 +30,7 @@ class TestMeta:
         assert f.merge_target == "main"
 
 
-class TestPhabPush:
+class TestPush:
     def test_push_one_head(self, clone: Path):
         (clone / "test_file.txt").write_text("Test content")
         run_cmd("jj", "commit", "-m", "Test commit 1")
@@ -78,3 +78,14 @@ class TestPhabPush:
         assert js[0]["title"] == "Test commit 2"
         assert js[1]["title"] == "Test commit 1"
         # todo: assert two has one as a parent
+
+
+class TestLog:
+    def test_log(self, clone: Path):
+        (clone / "test_file.txt").write_text("Test content")
+        run_cmd("jj", "commit", "-m", "Test commit 1")
+        run_cmd("jj", "pr", "push")
+
+        log_output = run_cmd("jj", "pr", "log")
+        assert "Test commit 1" in log_output
+        assert "Needs Review" in log_output

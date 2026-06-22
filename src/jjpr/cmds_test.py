@@ -32,6 +32,9 @@ class DummyForge(Forge):
     def list_crs(self, all_projects: bool = False) -> list[cr.CodeReview]:
         return []
 
+    def log(self, args: list[str]) -> str:
+        return "dummy log output"
+
 
 def make_cr_list_item(
     forge: Forge = DummyForge(),

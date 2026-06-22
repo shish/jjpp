@@ -1,7 +1,9 @@
 import typing as t
 from dataclasses import asdict, dataclass, field
+from io import StringIO
 
 import httpx
+from rich.console import Console
 from rich.markup import escape
 
 if t.TYPE_CHECKING:
@@ -51,6 +53,14 @@ class State:
         if self.url:
             t = f"[link={self.url}]{t}[/link]"
         return t
+
+    def __str__(self) -> str:
+        buffer = StringIO()
+        console = Console(file=buffer, force_terminal=True, color_system="truecolor")
+
+        console.print(self, end="")
+
+        return buffer.getvalue()
 
 
 @dataclass

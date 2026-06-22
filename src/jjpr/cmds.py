@@ -81,7 +81,7 @@ def pre_commit_stack(ref: str | None) -> None:
     for n, change_id in enumerate(changes):
         if n > 0:
             print("=" * 80)
-            pre_commit_change(change_id, pc_cmd, arc_cmd)
+        pre_commit_change(change_id, pc_cmd, arc_cmd)
 
 
 def pre_commit_change(change_id: str, pc_cmd: str | None, arc_cmd: str | None) -> None:

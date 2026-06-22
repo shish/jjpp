@@ -121,6 +121,9 @@ class Phabricator(Forge):
                     + f"\n\nDifferential Revision: {self.forge_url}/D{revision_id}"
                 ),
             )
+            print(f"Created revision {self.forge_url}/D{revision_id} for {change_id}")
+        else:
+            print(f"Updated revision {self.forge_url}/D{revision_id} for {change_id}")
 
     def _change_to_revision(self, change_id: jj.ChangeID) -> Optional[PhRev]:
         d = jj.description_of(change_id)

@@ -22,7 +22,10 @@ class PhabricatorClient:
     """
 
     def __init__(self, base_url: httpx.URL):
-        self.client = httpx.Client(base_url=base_url.copy_with(path="/api/"))
+        self.client = httpx.Client(
+            base_url=base_url.copy_with(path="/api/"),
+            timeout=30,
+        )
 
         token = None
         arc_conf = Path.home() / ".arcrc"

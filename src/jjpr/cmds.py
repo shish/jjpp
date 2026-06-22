@@ -77,7 +77,7 @@ def pre_commit_stack(ref: str | None) -> None:
         log.info("No pre-commit configuration found, skipping")
         return
 
-    changes = jj.change_ids(ref) if ref else jj.pushable_stack()
+    changes = jj.change_ids(ref) if ref else jj.checkable_stack()
     for n, change_id in enumerate(changes):
         if n > 0:
             print("=" * 80)

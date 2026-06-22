@@ -7,7 +7,7 @@ from typing import Any, List, Optional
 import httpx
 
 from ... import exc
-from ...utils import exec, jj
+from ...utils import exec, git, jj
 from ..base import CRListItem, Forge
 from .client import PhabricatorClient
 
@@ -24,6 +24,9 @@ class Phabricator(Forge):
             self.repo_config = json.loads(Path(".arcconfig").read_text())
             self.forge_url = httpx.URL(self.repo_config["phabricator.uri"])
             self.project_id = self.repo_config["repository.callsign"]
+            self.merge_target = self.repo_config.get(
+                "arc.land.onto.default", git.get_merge_target()
+            )
             self.client = PhabricatorClient(self.forge_url)
         except Exception as e:
             raise exc.UserError(f"Error loading repo config from .arcconfig: {e}")

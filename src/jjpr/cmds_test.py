@@ -73,53 +73,16 @@ class TestRepo:
 
 class TestGetPcCommand:
     def test_no_hook_configured(self):
-        """Test _get_pc_command when no pre-commit hook is found."""
         with tmp_cwd():
             result = cmds._get_pc_command()
             assert result is None
 
-    def test_hook_exists_prek_available(self):
-        """Test _get_pc_command when hook exists and prek is available."""
+    def test_hook_exists(self):
         with tmp_cwd():
-            # Create .git/hooks/pre-commit
-            Path(".git/hooks").mkdir(parents=True, exist_ok=True)
-            Path(".git/hooks/pre-commit").touch()
-
-            with mock.patch("shutil.which") as mock_which:
-                mock_which.return_value = "/usr/bin/prek"
-                result = cmds._get_pc_command()
-                assert result == "/usr/bin/prek"
-
-    def test_hook_exists_precommit_available(self):
-        """Test _get_pc_command when hook exists and pre-commit is available."""
-        with tmp_cwd():
-            # Create .git/hooks/pre-commit
-            Path(".git/hooks").mkdir(parents=True, exist_ok=True)
-            Path(".git/hooks/pre-commit").touch()
-
-            with mock.patch("shutil.which") as mock_which:
-
-                def which_side_effect(cmd):
-                    if cmd == "prek":
-                        return None
-                    elif cmd == "pre-commit":
-                        return "/usr/bin/pre-commit"
-                    return None
-
-                mock_which.side_effect = which_side_effect
-                result = cmds._get_pc_command()
-                assert result == "/usr/bin/pre-commit"
-
-    def test_hook_exists_no_binary(self):
-        """Test _get_pc_command when hook exists but no binary available."""
-        with tmp_cwd():
-            # Create .git/hooks/pre-commit
-            Path(".git/hooks").mkdir(parents=True, exist_ok=True)
-            Path(".git/hooks/pre-commit").touch()
-
-            with mock.patch("shutil.which", return_value=None):
-                result = cmds._get_pc_command()
-                assert result is None
+            p = Path(".git/hooks/pre-commit")
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.touch()
+            assert cmds._get_pc_command() == ".git/hooks/pre-commit"
 
 
 class TestGetArcCommand:

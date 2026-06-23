@@ -17,6 +17,7 @@ As a bonus, `jj pr list` to get a list of my open reviews, and `jj pr log` to ge
   * creates new ones if not
   * gerrit & phabricator create a review for each commit in the stack
   * github will create a new `pr/XYZ` branch, send that branch for review, and update that branch on subsequent pushes
+  * runs pre-commit hooks if configured
   * `jj pr push <change id>` - push an individual commit
 * `jj pr list` - list open PRs/CRs/Diffs for the current project
   * `jj pr list --all-projects` - list open CRs/Diffs for all projects on the forge

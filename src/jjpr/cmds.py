@@ -39,18 +39,10 @@ class Repo:
 
 
 def _get_pc_command() -> str | None:
-    pc_configured = Path(".git/hooks/pre-commit").exists()
-    if not pc_configured:
-        return None
-
-    pc_cmd = None
-    for cmd in ["prek", "pre-commit"]:
-        if pc_cmd := shutil.which(cmd):
-            break
-    if pc_configured and not pc_cmd:
-        log.info("pre-commit hook found, but no pre-commit or prek binary")
-
-    return pc_cmd
+    pch = Path(".git/hooks/pre-commit")
+    if pch.exists():
+        return str(pch)
+    return None
 
 
 def _get_arc_command() -> str | None:
@@ -88,10 +80,11 @@ def pre_commit_change(change_id: str, pc_cmd: str | None, arc_cmd: str | None) -
         print(f'Checking "{descr}" ({change_id})')
         print(f"Affected files: {shlex.join(files)}")
         try:
-            if pc_cmd:
-                exec.run([pc_cmd, "run", "--files", *files], cap=False)
             if arc_cmd:
                 exec.run([arc_cmd, "lint", "--apply-patches"], cap=False)
+            exec.run(["git", "add", "--all"], cap=False)
+            if pc_cmd:
+                exec.run([pc_cmd], cap=False)
         except Exception:
             raise exc.UserError(f"pre-commit checks failed for change {change_id}")
 

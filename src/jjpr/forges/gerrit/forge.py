@@ -133,6 +133,9 @@ class Gerrit(Forge):
                 blockers=len(blockers) > 0,
                 url=self.forge_url.join(f"/c/{change['_number']}"),
             )
+        # call `jj log` with a custom template that includes the change ID,
+        # and then search-and-replace the change ID with the corresponding
+        # state from id_to_state
         return self._log(
             args, '"I" ++ commit.change_id().normal_hex() ++"6a6a6964"', id_to_state
         )

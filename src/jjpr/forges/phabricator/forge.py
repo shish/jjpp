@@ -23,7 +23,10 @@ class Phabricator(Forge):
         super().__init__(remote)
         try:
             self.repo_config = json.loads(Path(".arcconfig").read_text())
-            self.forge_url = httpx.URL(self.repo_config["phabricator.uri"])
+            uri = self.repo_config["phabricator.uri"]
+            self.forge_url = (
+                httpx.URL(uri) if uri else self.remote_url.copy_with(path=None)
+            )
             self.project_id = self.repo_config["repository.callsign"]
             self.merge_target = (
                 self.repo_config.get("arc.land.onto.default") or git.get_merge_target()
@@ -189,6 +192,8 @@ class Phabricator(Forge):
         ]
 
     def log(self, args: list[str]) -> str:
+        # fetch my open revisions and their status from Phabricator,
+        # index them by revision ID
         revs = self.client.call(
             "differential.revision.search",
             constraints={
@@ -209,6 +214,9 @@ class Phabricator(Forge):
                 state=rev["fields"]["status"]["name"],
                 url=httpx.URL(rev["fields"]["uri"]),
             )
+        # call `jj log` with a custom template that includes the rev ID,
+        # and then search-and-replace the rev ID with the corresponding
+        # state from id_to_state
         return self._log(
             args,
             """

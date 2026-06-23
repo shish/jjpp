@@ -51,11 +51,11 @@ As a bonus, `jj pr list` to get a list of my open reviews, and `jj pr log` to ge
 
 ## Backend Notes
 
-* `github` - requires `gh` CLI to be installed and configured
-* `gerrit` - requires an API token to be set in `~/.netrc`
-  * `machine <gerrit-host> login <username> password <api-token>`
-  * (API token from settings -> HTTP Credentials)
-* `phabricator` - requires `arc` CLI to be installed and configured
+ Backend will be automatically detected based on the git remote URL; if that doesn't work, you can set the backend explicitly with `jj config set --repo pr.forge <backend>`.
+ 
++* [github](./src/jjpr/forges/github/README.md)
++* [gerrit](./src/jjpr/forges/gerrit/README.md)
++* [phabricator](./src/jjpr/forges/phabricator/README.md)
 
 ## Install
 

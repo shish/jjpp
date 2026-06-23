@@ -147,6 +147,8 @@ class GitHub(Forge):
         return crs
 
     def log(self, args: list[str]) -> str:
+        # Fetch "my open PRs and their status" from
+        # GitHub, index them by branch name
         cmd = [
             "gh",
             "pr",
@@ -165,6 +167,9 @@ class GitHub(Forge):
             state = _colour_state(is_draft=is_draft, reviews=reviews, url=url)
             id_to_state[pr["headRefName"]] = state
             id_to_state[pr["headRefName"] + "@" + self.remote] = state
+        # call `jj log` with a custom template that includes the branch,
+        # and then search-and-replace the branch with the corresponding
+        # state from id_to_state
         return self._log(
             args,
             'commit.bookmarks().join(",")',

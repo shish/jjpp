@@ -11,6 +11,7 @@ import pytest
 import tenacity as tc
 
 from ...conftest import run_cmd, tmp_cwd
+from ...utils import netrc
 from .client import PhabricatorClient
 
 
@@ -41,9 +42,7 @@ def session(
     if not vcs_password:
         pytest.skip("JJPR_TEST_PHABRICATOR_VCS_PASSWORD not set, skipping tests")
 
-    rc = Path(tmp_home) / ".netrc"
-    rc.open("a").write(f"machine {url.host}\nlogin admin\npassword {vcs_password}\n\n")
-    rc.chmod(0o600)
+    netrc.write(url.host, "admin", vcs_password)
 
     # configure http client with persistent token
     client = PhabricatorClient(url)

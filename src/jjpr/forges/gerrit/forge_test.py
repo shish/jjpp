@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 from ...conftest import run_cmd
+from ...utils import netrc
 from .forge import Gerrit
 
 
@@ -10,10 +11,7 @@ class TestMeta:
         r = "ssh://git@gerrit.mycorp.com:29418/example/repo.git"
         run_cmd("git", "remote", "set-url", "origin", r)
         run_cmd("jj", "config", "set", "--repo", "gerrit.default-remote-branch", "main")
-        (tmp_home / ".netrc").write_text(
-            "machine gerrit.mycorp.com\nlogin testuser\npassword testtoken\n"
-        )
-        (tmp_home / ".netrc").chmod(0o600)
+        netrc.write("gerrit.mycorp.com", "testuser", "testtoken")
         f = Gerrit("origin")
         assert f.remote_url == r
         assert f.forge_url == "https://gerrit.mycorp.com"

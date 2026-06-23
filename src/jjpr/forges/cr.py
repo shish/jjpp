@@ -6,7 +6,7 @@ import httpx
 from rich.console import Console
 from rich.markup import escape
 
-if t.TYPE_CHECKING:
+if t.TYPE_CHECKING:  # pragma: no cover
     from .base import Forge
 
 
@@ -73,14 +73,11 @@ class CodeReview:
     extra: dict[str, str] = field(default_factory=dict)
 
     def as_dict(self) -> dict:
-        d = asdict(self)
-        for key, value in d.items():
-            if isinstance(value, list):
-                d[key] = [str(v) for v in value]
-            elif isinstance(value, dict):
-                d[key] = {k: str(v) for k, v in value.items()}
-            elif hasattr(value, "asdict"):
-                d[key] = value.asdict()
-            else:
-                d[key] = str(value)
-        return d
+        return {
+            "forge": self.forge.asdict(),
+            "cr_id": self.cr_id,
+            "title": asdict(self.title),
+            "state": asdict(self.state),
+            "blockers": [str(b) for b in self.blockers],
+            "extra": {k: str(v) for k, v in self.extra.items()},
+        }

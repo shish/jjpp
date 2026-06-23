@@ -55,9 +55,6 @@ class TestBasicCommands:
         description = jj.description_of(change_id)
         assert new_description in description
 
-    def test_root(self, repo_with_commits: Path):
-        assert os.getcwd() == str(jj.root())
-
     def test_git_fetch(self, repo_with_commits: Path):
         with mock.patch("jjpr.utils.jj.run") as mock_run:
             jj.git_fetch("origin")
@@ -72,12 +69,20 @@ class TestBasicCommands:
                 "git", "push", "--remote", "origin", "--bookmark", "main", cap=False
             )
 
+    def test_log(self, repo_with_commits: Path):
+        output = jj.log_()
+        assert output is not None
+        assert isinstance(output, str)
+
     def test_rebase(self, repo_with_commits: Path):
         with mock.patch("jjpr.utils.jj.run") as mock_run:
             jj.rebase(d="trunk()", r="@")
             mock_run.assert_called_once_with(
                 "rebase", "--skip-emptied", "-d", "trunk()", "-r", "@", cap=False
             )
+
+    def test_root(self, repo_with_commits: Path):
+        assert os.getcwd() == str(jj.root())
 
 
 class TestGerritUpload:

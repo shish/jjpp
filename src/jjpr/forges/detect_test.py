@@ -6,6 +6,7 @@ import pytest
 
 from .. import exc
 from ..conftest import run_cmd
+from ..utils import netrc
 from . import detect
 
 log = logging.getLogger(__name__)
@@ -80,9 +81,7 @@ class TestGetForge:
         assert f.__class__.__name__ == "Phabricator"
 
     def test_detect_gerrit(self, tmp_repo: Path):
-        rc = Path.home() / ".netrc"
-        rc.write_text("machine gerrit.foo.com\nlogin l\npassword p\n")
-        rc.chmod(0o600)
+        netrc.write("gerrit.foo.com", "l", "p")
         run_cmd("jj", "config", "set", "--repo", "gerrit.default-remote-branch", "main")
         run_cmd("git", "remote", "set-url", "origin", "https://gerrit.foo.com/foo/bar")
         f = detect.get_forge("origin")

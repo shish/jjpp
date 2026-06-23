@@ -8,6 +8,7 @@ import httpx
 import pytest
 
 from ...conftest import run_cmd, tmp_cwd
+from ...utils import netrc
 from .client import GerritClient
 
 
@@ -27,9 +28,7 @@ def session(
     if not gerrit_token:
         pytest.skip("JJPR_TEST_GERRIT_API_TOKEN not set, skipping tests")
 
-    rc = Path(tmp_home) / ".netrc"
-    rc.open("a").write(f"machine {url.host}\nlogin admin\npassword {gerrit_token}\n\n")
-    rc.chmod(0o600)
+    netrc.write(url.host, "admin", gerrit_token)
 
     client = GerritClient(url)
 

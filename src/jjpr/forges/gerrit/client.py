@@ -1,10 +1,11 @@
 import base64
+import json
 import logging
-import netrc
 
 import httpx
 
 from ... import exc
+from ...utils import netrc
 
 log = logging.getLogger(__name__)
 
@@ -19,7 +20,7 @@ class GerritClient(httpx.Client):
     """
 
     def __init__(self, base_url: httpx.URL) -> None:
-        auth = _get_auth(str(base_url.host))
+        auth = netrc.read(str(base_url.host))
         if not auth:
             raise exc.UserError(
                 f"Could not find credentials for {base_url.host} in ~/.netrc"
@@ -32,11 +33,11 @@ class GerritClient(httpx.Client):
 
     def request(self, *args, **kwargs) -> httpx.Response:
         response = super().request(*args, **kwargs)
+        request = response.request
         log.debug(
-            f"API call:\n"
-            f"  {response.request.method} {response.request.url} = {response.status_code}\n"
-            # f"  <- {parse_qs(response.request.content.decode())}\n"
-            f"  -> {response.text}"
+            f"API call: {request.method} {request.url.path} = {response.status_code}\n"
+            f"  <- {json.dumps(dict(request.url.params))}\n"
+            f"  -> " + response.text.lstrip(")]}':\n")
         )
         try:
             response.raise_for_status()
@@ -51,24 +52,5 @@ class GerritClient(httpx.Client):
         cleaned_text = response.text.lstrip(")]}':\n")
         # Replace the response text with cleaned content
         response._content = cleaned_text.encode()
+        del response._text  # Remove the cached property to force re-evaluation
         return response
-
-
-def _get_auth(hostname: str) -> tuple[str, str] | None:
-    try:
-        rc = netrc.netrc()
-    except (FileNotFoundError, netrc.NetrcParseError) as e:
-        log.warning(f"Could not get creds from netrc file: {e}")
-        return None
-
-    auth = rc.authenticators(hostname)
-    if not auth:
-        log.warning(f"No credentials found in netrc for {hostname}")
-        return None
-
-    login, _, password = auth
-    if not password:
-        log.warning(f"Empty password in netrc for {hostname}")
-        return None
-
-    return (login, password)

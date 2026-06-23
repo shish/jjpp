@@ -3,8 +3,8 @@ import os
 import random
 import shutil
 import string
+import typing as t
 from pathlib import Path
-from typing import Generator
 
 import httpx
 import pytest
@@ -26,7 +26,7 @@ def url() -> httpx.URL:
 def session(
     tmp_home: Path,
     url: httpx.URL,
-) -> Generator[PhabricatorClient, None, None]:
+) -> t.Generator[PhabricatorClient, None, None]:
     # configure .arcrc
     phabricator_token = os.getenv("JJPR_TEST_PHABRICATOR_API_TOKEN")
     if not phabricator_token:
@@ -63,7 +63,7 @@ def session(
 def repo(
     url: httpx.URL,
     session: PhabricatorClient,
-) -> Generator[httpx.URL, None, None]:
+) -> t.Generator[httpx.URL, None, None]:
     rand = "".join(random.choices(string.ascii_lowercase, k=4))
     repo_name = f"ztst-phab-{rand}"
     try:
@@ -117,7 +117,7 @@ def repo(
 
 
 @pytest.fixture
-def clone(repo: httpx.URL) -> Generator[Path, None, None]:
+def clone(repo: httpx.URL) -> t.Generator[Path, None, None]:
     with tmp_cwd() as tmp_dir:
         run_cmd("jj", "git", "clone", str(repo), ".")
         yield tmp_dir

@@ -1,7 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass, field
-from typing import List, Optional
 
 import httpx
 
@@ -43,18 +42,18 @@ class Forge(ABC):
         self.remote_url = git.get_remote_url(remote)
 
     @abstractmethod
-    def push(
+    def push_cr(
         self,
-        ref: Optional[str],
+        ref: str | None,
         draft: bool = False,
-        message: Optional[str] = None,
+        message: str | None = None,
     ) -> None:
         """Push changes to the forge."""
 
     @abstractmethod
-    def checkout(self, identifier: str) -> None:
+    def checkout_cr(self, identifier: str) -> None:
         """Checkout changes from the forge."""
 
     @abstractmethod
-    def list(self, all_projects: bool = False) -> List[CRListItem]:
+    def list_crs(self, all_projects: bool = False) -> list[CRListItem]:
         """List items on the forge, returning a list of CRListItem objects."""

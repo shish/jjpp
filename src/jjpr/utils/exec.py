@@ -1,20 +1,20 @@
 import logging
 import shlex
 import subprocess
-from typing import Literal, overload
+import typing as t
 
 log = logging.getLogger(__name__)
 
 
-@overload
-def run(cmd: list[str], cap: Literal[True]) -> str: ...
+@t.overload
+def run(cmd: list[str], cap: t.Literal[True]) -> str: ...
 
 
-@overload
-def run(cmd: list[str], cap: Literal[False]) -> None: ...
+@t.overload
+def run(cmd: list[str], cap: t.Literal[False]) -> None: ...
 
 
-@overload
+@t.overload
 def run(cmd: list[str]) -> str: ...
 
 

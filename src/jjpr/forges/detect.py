@@ -1,5 +1,5 @@
 import logging
-from typing import Literal, Optional
+import typing as t
 
 import httpx
 
@@ -12,10 +12,10 @@ from .phabricator.forge import Phabricator
 
 log = logging.getLogger(__name__)
 
-ForgeName = Literal["github", "phabricator", "gerrit"]
+ForgeName = t.Literal["github", "phabricator", "gerrit"]
 
 
-def detect_forge_from_url(url: httpx.URL) -> Optional[ForgeName]:
+def detect_forge_from_url(url: httpx.URL) -> ForgeName | None:
     domain = url.host.lower() if url.host else ""
 
     # Remove 'www.' prefix if present
@@ -32,7 +32,7 @@ def detect_forge_from_url(url: httpx.URL) -> Optional[ForgeName]:
     return None
 
 
-def get_forge(forge: Optional[ForgeName], remote: str) -> Forge:
+def get_forge(forge: ForgeName | None, remote: str) -> Forge:
     remote_url = git.get_remote_url(remote)
 
     # If forge is explicitly specified, use that

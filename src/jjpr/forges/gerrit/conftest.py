@@ -1,8 +1,8 @@
 import os
 import random
 import string
+import typing as t
 from pathlib import Path
-from typing import Generator
 
 import httpx
 import pytest
@@ -21,7 +21,7 @@ def url() -> httpx.URL:
 def session(
     tmp_home: Path,
     url: httpx.URL,
-) -> Generator[GerritClient, None, None]:
+) -> t.Generator[GerritClient, None, None]:
     # configure .netrc
     gerrit_token = os.getenv("JJPR_TEST_GERRIT_API_TOKEN")
     if not gerrit_token:
@@ -48,7 +48,7 @@ def session(
 def repo(
     url: httpx.URL,
     session: GerritClient,
-) -> Generator[httpx.URL, None, None]:
+) -> t.Generator[httpx.URL, None, None]:
     rand = "".join(random.choices(string.ascii_lowercase, k=4))
     repo_name = f"ztst-gerr-{rand}"
     try:
@@ -79,7 +79,7 @@ def repo(
 
 
 @pytest.fixture
-def clone(repo: httpx.URL) -> Generator[Path, None, None]:
+def clone(repo: httpx.URL) -> t.Generator[Path, None, None]:
     with tmp_cwd() as tmp_dir:
         run_cmd("jj", "git", "clone", str(repo), ".")
         yield tmp_dir

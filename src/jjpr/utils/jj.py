@@ -4,7 +4,6 @@ import shlex
 import subprocess
 import typing as t
 from contextlib import contextmanager
-from typing import Literal, overload
 
 from . import exec
 
@@ -19,15 +18,15 @@ class JjError(Exception):
     pass
 
 
-@overload
-def run(*args: str, cap: Literal[True]) -> str: ...
+@t.overload
+def run(*args: str, cap: t.Literal[True]) -> str: ...
 
 
-@overload
-def run(*args: str, cap: Literal[False]) -> None: ...
+@t.overload
+def run(*args: str, cap: t.Literal[False]) -> None: ...
 
 
-@overload
+@t.overload
 def run(*args: str) -> str: ...
 
 

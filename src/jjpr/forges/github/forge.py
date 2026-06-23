@@ -1,7 +1,7 @@
 import json
 import logging
 import re
-from typing import Any, List, Optional
+import typing as t
 
 import httpx
 
@@ -27,11 +27,11 @@ class GitHub(Forge):
                 f"Invalid GitHub remote URL format: {self.remote_url}. Expected format: owner/repo"
             )
 
-    def push(
+    def push_cr(
         self,
-        ref: Optional[str],
+        ref: str | None,
         draft: bool = False,
-        message: Optional[str] = None,
+        message: str | None = None,
     ) -> None:
         changes = jj.change_id(ref) if ref else jj.pushable_stack()
 
@@ -80,7 +80,7 @@ class GitHub(Forge):
                     args.extend(["-b", message])
                 exec.run(args)
 
-    def checkout(self, identifier: str) -> None:
+    def checkout_cr(self, identifier: str) -> None:
         log.info(f"Checking out PR {identifier} from {self.remote_url}")
         exec.run(
             [
@@ -93,7 +93,7 @@ class GitHub(Forge):
             ]
         )
 
-    def list(self, all_projects: bool = False) -> list[CRListItem]:
+    def list_crs(self, all_projects: bool = False) -> list[CRListItem]:
         if all_projects:
             log.warning("Listing PRs for all projects is not supported for GitHub.")
         log.info(
@@ -143,7 +143,7 @@ class GitHub(Forge):
         return crs
 
 
-def _colour_state(is_draft: bool = False, reviews: Optional[List[Any]] = None) -> str:
+def _colour_state(is_draft: bool = False, reviews: list[t.Any] | None = None) -> str:
     if reviews is None:
         reviews = []
 

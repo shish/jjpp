@@ -1,8 +1,8 @@
 import json
 import logging
 import re
+import typing as t
 from pathlib import Path
-from typing import Any, List, Optional
 
 import httpx
 
@@ -31,11 +31,11 @@ class Phabricator(Forge):
         except Exception as e:
             raise exc.UserError(f"Error loading repo config from .arcconfig: {e}")
 
-    def push(
+    def push_cr(
         self,
-        ref: Optional[str],
+        ref: str | None,
         draft: bool = False,
-        message: Optional[str] = None,
+        message: str | None = None,
     ) -> None:
         changes = jj.change_id(ref) if ref else jj.pushable_stack()
         log.info(f"Pushing {ref} ({changes})")
@@ -46,7 +46,7 @@ class Phabricator(Forge):
         self,
         change_id: str,
         draft: bool = False,
-        message: Optional[str] = None,
+        message: str | None = None,
     ) -> None:
         log.info(f"Pushing {change_id}")
         rev = self._change_to_revision(change_id)
@@ -56,7 +56,7 @@ class Phabricator(Forge):
             log.info(f"Creating new revision for {change_id}")
 
         # to-do list
-        data: dict[str, Any] = {
+        data: dict[str, t.Any] = {
             "transactions": [],
         }
 
@@ -120,7 +120,7 @@ class Phabricator(Forge):
         else:
             print(f"Updated revision {self.forge_url}/D{revision_id} for {change_id}")
 
-    def _change_to_revision(self, change_id: jj.ChangeID) -> Optional[PhRev]:
+    def _change_to_revision(self, change_id: jj.ChangeID) -> PhRev | None:
         d = jj.description_of(change_id)
         if m := re.search(r"Differential Revision:.*D(\d+)", d):
             return int(m.group(1))
@@ -141,11 +141,11 @@ class Phabricator(Forge):
             constraints={"callsigns": [callsign]},
         )["data"][0]["phid"]
 
-    def checkout(self, identifier: str) -> None:
+    def checkout_cr(self, identifier: str) -> None:
         log.info(f"Checking out Phabricator diff {identifier}")
         exec.run(["arc", "patch", identifier], cap=False)
 
-    def list(self, all_projects: bool = False) -> List[CRListItem]:
+    def list_crs(self, all_projects: bool = False) -> list[CRListItem]:
         log.info(
             f"Listing diffs for {self.remote_url} ({'*' if all_projects else self.project_id})"
         )

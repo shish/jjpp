@@ -2,8 +2,8 @@ import os
 import random
 import shutil
 import string
+import typing as t
 from pathlib import Path
-from typing import Generator
 
 import httpx
 import pytest
@@ -30,7 +30,7 @@ def api_url(url: httpx.URL) -> httpx.URL:
 @pytest.fixture(scope="class")
 def session(
     api_url: httpx.URL,
-) -> Generator[httpx.Client, None, None]:
+) -> t.Generator[httpx.Client, None, None]:
     """Create and validate a GitHub API session."""
     token = os.getenv("JJPR_TEST_GITHUB_API_TOKEN")
     if not token:
@@ -63,7 +63,7 @@ def repo(
     url: httpx.URL,
     api_url: httpx.URL,
     session: httpx.Client,
-) -> Generator[httpx.URL, None, None]:
+) -> t.Generator[httpx.URL, None, None]:
     """Create and cleanup a test repository on GitHub."""
     rand = "".join(random.choices(string.ascii_lowercase, k=4))
     repo_name = f"ztst-ghub-{rand}"
@@ -100,7 +100,7 @@ def repo(
 
 
 @pytest.fixture
-def clone(repo: httpx.URL) -> Generator[Path, None, None]:
+def clone(repo: httpx.URL) -> t.Generator[Path, None, None]:
     with tmp_cwd() as tmp_dir:
         run_cmd("jj", "git", "clone", str(repo), ".")
         yield tmp_dir

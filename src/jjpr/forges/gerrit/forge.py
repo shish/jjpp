@@ -1,6 +1,5 @@
 import logging
 import re
-from typing import List, Optional
 
 import httpx
 
@@ -30,11 +29,11 @@ class Gerrit(Forge):
 
         self.client = GerritClient(self.forge_url)
 
-    def push(
+    def push_cr(
         self,
-        ref: Optional[str],
+        ref: str | None,
         draft: bool = False,
-        message: Optional[str] = None,
+        message: str | None = None,
     ) -> None:
         if ref:
             change_id = jj.change_id(ref)
@@ -49,7 +48,7 @@ class Gerrit(Forge):
             remote_branch=self.merge_target,
         )
 
-    def checkout(self, identifier: str) -> None:
+    def checkout_cr(self, identifier: str) -> None:
         log.info(f"Fetching Gerrit change {identifier}")
         # Query API to get the latest patch set number
         change_data_response = self.client.get(
@@ -72,7 +71,7 @@ class Gerrit(Forge):
         exec.run(["git", "fetch", self.remote, f"{current_rev}:{remote_id}"])
         exec.run(["git", "checkout", remote_id])
 
-    def list(self, all_projects: bool = False) -> List[CRListItem]:
+    def list_crs(self, all_projects: bool = False) -> list[CRListItem]:
         """List the user's open changes in Gerrit, showing any blockers."""
         log.info(
             f"Listing open changes from {self.forge_url} ({'*' if all_projects else self.project_id})"
@@ -84,7 +83,7 @@ class Gerrit(Forge):
             f"changes/?q={query}&o=SUBMIT_REQUIREMENTS&o=DETAILED_ACCOUNTS"
         ).json()
 
-        crs: List[CRListItem] = []
+        crs: list[CRListItem] = []
         for change in changes_response:
             blockers = []
             for req in change.get("submit_requirements", []):

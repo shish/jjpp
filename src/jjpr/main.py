@@ -1,8 +1,8 @@
 import json
 import logging
 import sys
+import typing as t
 from pathlib import Path
-from typing import Literal, Optional, cast, get_args
 
 import typer
 
@@ -16,7 +16,7 @@ app = typer.Typer(
 )
 log = logging.getLogger(__name__)
 
-OutputFormat = Literal["table", "json"]
+OutputFormat = t.Literal["table", "json"]
 
 
 class GlobalOptions:
@@ -28,15 +28,15 @@ class GlobalOptions:
 @app.callback(invoke_without_command=False)
 def main(
     ctx: typer.Context,
-    path: Optional[Path] = typer.Option(
+    path: Path | None = typer.Option(
         None,
         "--repo",
         help="Path to locally checked out repo",
     ),
-    remote: Optional[str] = typer.Option(
+    remote: str | None = typer.Option(
         None, "--remote", help="Which remote to work with"
     ),
-    forge: Optional[detect.ForgeName] = typer.Option(
+    forge: detect.ForgeName | None = typer.Option(
         None, "--forge", help="Which forge backend to use"
     ),
     verbose: int = typer.Option(
@@ -70,7 +70,7 @@ def main(
 @app.command("push")
 def push_command(
     ctx: typer.Context,
-    ref: Optional[str] = typer.Argument(None, help="Ref to push"),
+    ref: str | None = typer.Argument(None, help="Ref to push"),
     pre_commit: bool = typer.Option(
         True,
         "--pre-commit/--no-pre-commit",
@@ -81,7 +81,7 @@ def push_command(
         "--draft",
         help="Create as a draft/WIP",
     ),
-    message: Optional[str] = typer.Option(
+    message: str | None = typer.Option(
         None,
         "-m",
         "--message",
@@ -89,11 +89,11 @@ def push_command(
     ),
 ) -> None:
     """Push current stack to the forge."""
-    r = cast(GlobalOptions, ctx.obj).repo
+    r = t.cast(GlobalOptions, ctx.obj).repo
     with r.chdir():
         if pre_commit:
             cmds.pre_commit_stack(ref)
-        r.forge.push(ref, draft=draft, message=message)
+        r.forge.push_cr(ref, draft=draft, message=message)
 
 
 @app.command("pull")
@@ -107,7 +107,7 @@ def pull_command(
     ),
 ) -> None:
     """Pull from remote and rebase current stack."""
-    r = cast(GlobalOptions, ctx.obj).repo
+    r = t.cast(GlobalOptions, ctx.obj).repo
     with r.chdir():
         jj.git_fetch(remote=r.forge.remote)
         jj.rebase(d="trunk()", r="mutable()" if all else "trunk()..@")
@@ -119,9 +119,9 @@ def checkout_command(
     identifier: str = typer.Argument(None, help="PR/Diff/CR ID"),
 ) -> None:
     """Check out a PR/CR/Diff from the forge."""
-    r = cast(GlobalOptions, ctx.obj).repo
+    r = t.cast(GlobalOptions, ctx.obj).repo
     with r.chdir():
-        r.forge.checkout(identifier)
+        r.forge.checkout_cr(identifier)
 
 
 @app.command("list")
@@ -137,21 +137,21 @@ def list_command(
     ),
 ) -> None:
     """List my open PRs/CRs/Diffs for the current project."""
-    gos = cast(GlobalOptions, ctx.obj)
+    gos = t.cast(GlobalOptions, ctx.obj)
     rs = [gos.repo]
 
     for extra in extra_repos:
         path, remote, forge = (extra.split(":") + [None, None, None])[:3]
         assert path is not None
         if forge is not None:
-            assert forge in get_args(detect.ForgeName)
-            forge = cast(detect.ForgeName, forge)
+            assert forge in t.get_args(detect.ForgeName)
+            forge = t.cast(detect.ForgeName, forge)
         rs.append(cmds.Repo(Path(path), remote, forge))
 
     items = []
     for r in rs:
         with r.chdir():
-            items.extend(r.forge.list(all_projects))
+            items.extend(r.forge.list_crs(all_projects))
     if gos.format == "json":
         print(json.dumps([item.as_dict() for item in items], indent=4))
     else:
@@ -164,10 +164,10 @@ def list_command(
 @app.command("pre-commit")
 def pre_commit_command(
     ctx: typer.Context,
-    ref: Optional[str] = typer.Argument(None, help="Ref to check"),
+    ref: str | None = typer.Argument(None, help="Ref to check"),
 ) -> None:
     """Run pre-commit hooks."""
-    r = cast(GlobalOptions, ctx.obj).repo
+    r = t.cast(GlobalOptions, ctx.obj).repo
     with r.chdir():
         cmds.pre_commit_stack(ref)
 

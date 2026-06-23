@@ -6,8 +6,8 @@ import shlex
 import shutil
 import subprocess
 import tempfile
+import typing as t
 from pathlib import Path
-from typing import Generator
 
 import pytest
 from filelock import FileLock
@@ -59,7 +59,7 @@ def _run_jjpr_cmd(args: tuple[str, ...]) -> str:
 
 
 @contextlib.contextmanager
-def tmp_cwd() -> Generator[Path, None, None]:
+def tmp_cwd() -> t.Generator[Path, None, None]:
     """Create a temporary working directory for tests."""
     tmp_dir = tempfile.mkdtemp(prefix="jjpr_cwd_")
     original_dir = os.getcwd()
@@ -90,7 +90,7 @@ def _create_dotfiles() -> None:
 
 
 @pytest.fixture(scope="class")
-def tmp_home() -> Generator[Path, None, None]:
+def tmp_home() -> t.Generator[Path, None, None]:
     """Create a temporary home directory for tests, with git & jj configured."""
     original_home = os.environ.get("HOME", "")
     with tmp_cwd() as tmp_dir:
@@ -107,7 +107,7 @@ def tmp_home() -> Generator[Path, None, None]:
 
 
 @pytest.fixture
-def tmp_repo(tmp_home: Path) -> Generator[Path, None, None]:
+def tmp_repo(tmp_home: Path) -> t.Generator[Path, None, None]:
     with tmp_cwd() as remote_dir:
         run_cmd("git", "init", "--bare", "-b", "main")
         with tmp_cwd() as tmp_dir:
@@ -121,7 +121,7 @@ def tmp_repo(tmp_home: Path) -> Generator[Path, None, None]:
 
 
 @pytest.fixture
-def repo_with_commits(tmp_repo: Path) -> Generator[Path, None, None]:
+def repo_with_commits(tmp_repo: Path) -> t.Generator[Path, None, None]:
     # Create initial commit - jj auto-tracks changes
     Path("file1.txt").write_text("initial content")
     run_cmd("jj", "commit", "-m", "Initial commit")

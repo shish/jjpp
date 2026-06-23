@@ -72,7 +72,3 @@ class TestUniqueBranchName:
         run_cmd("git", "checkout", "-b", "test-2")
         name = git.unique_branch_name("test")
         assert name == "test-1"
-
-
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])

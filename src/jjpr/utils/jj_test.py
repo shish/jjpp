@@ -275,7 +275,3 @@ class TestWithNew:
             assert jj.parents_of("@") == {target}
 
         assert jj.parents_of("@") == original_parents
-
-
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])

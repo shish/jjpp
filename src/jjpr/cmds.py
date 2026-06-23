@@ -25,11 +25,12 @@ class Repo:
         with self.chdir():
             default_remote = exec.run(["git", "remote"]).splitlines()[0]
             forge = detect.get_forge(remote or default_remote)
-        self.forge = forge
+        self.remote = forge
 
     @contextmanager
     def chdir(self):
-        """Context manager to temporarily change the working directory."""
+        """Context manager to temporarily change the working directory
+        to the root of the checked-out repository."""
         original_dir = Path.cwd()
         try:
             os.chdir(self.path)
@@ -122,10 +123,7 @@ def display_list(items: list[cr.CodeReview], multi: bool) -> None:
         row.append(", ".join(b.__rich__() for b in item.blockers))
         table.add_row(
             *row,
-            *[
-                item.extra[key] if key in item.extra else ""
-                for key in sorted(all_extra_keys)
-            ],
+            *[item.extra.get(key, "") for key in sorted(all_extra_keys)],
         )
 
     console.print(table)

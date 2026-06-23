@@ -25,7 +25,3 @@ class TestRun:
     def test_run_strips_whitespace(self):
         output = exec.run(["echo", "  spaced  "])
         assert output == "spaced"
-
-
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])

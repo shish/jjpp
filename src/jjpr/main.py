@@ -89,7 +89,7 @@ def push_command(
     with r.chdir():
         if pre_commit:
             cmds.pre_commit_stack(ref)
-        r.forge.push_cr(ref, draft=draft, message=message)
+        r.remote.push_cr(ref, draft=draft, message=message)
 
 
 @app.command("pull")
@@ -105,7 +105,7 @@ def pull_command(
     """Pull from remote and rebase current stack."""
     r = t.cast(GlobalOptions, ctx.obj).repo
     with r.chdir():
-        jj.git_fetch(remote=r.forge.remote)
+        jj.git_fetch(remote=r.remote.remote)
         jj.rebase(d="trunk()", r="mutable()" if all else "trunk()..@")
 
 
@@ -117,7 +117,7 @@ def checkout_command(
     """Check out a PR/CR/Diff from the forge."""
     r = t.cast(GlobalOptions, ctx.obj).repo
     with r.chdir():
-        r.forge.checkout_cr(identifier)
+        r.remote.checkout_cr(identifier)
 
 
 @app.command("list")
@@ -142,7 +142,7 @@ def list_command(
     items = []
     for r in rs:
         with r.chdir():
-            items.extend(r.forge.list_crs(all_projects))
+            items.extend(r.remote.list_crs(all_projects))
 
     # Output the results
     if gos.format == "json":
@@ -172,7 +172,7 @@ def log_command(
     """Run `jj log` with annotated extra output for code review status."""
     r = t.cast(GlobalOptions, ctx.obj).repo
     with r.chdir():
-        print(r.forge.log(ctx.args))
+        print(r.remote.log(ctx.args))
 
 
 def run() -> None:

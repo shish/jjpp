@@ -53,6 +53,8 @@ class Forge(ABC):
     def _log(
         self, args: list[str], template: str, id_to_state: dict[str, cr.State]
     ) -> str:
+        """Helper to run `jj log` with an extra template for CR IDs, and then
+        replace those IDs with the current CR status"""
         logdata = jj.log_(
             "--color",
             "always",

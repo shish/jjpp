@@ -20,6 +20,7 @@ def get_remote_url(remote_name: str = "origin") -> httpx.URL:
 
 
 def get_merge_target(remote: str = "origin") -> str:
+    """Find the default branch of the remote repository."""
     # Output format: ref: refs/heads/main	HEAD
     try:
         output = exec.run(["git", "ls-remote", "--symref", remote, "HEAD"])

@@ -113,27 +113,21 @@ class TestGetArcCommand:
 
 class TestPreCommitStack:
     def test_no_hooks_configured(self, tmp_repo: Path):
-        """Test pre_commit when no hooks are configured."""
         # Should not raise and should return early
         with mock.patch("jjpr.cmds.pre_commit_change") as pcc:
             cmds.pre_commit_stack(None)
             assert not pcc.called
 
     def test_with_pc_hook(self, repo_with_commits: Path):
-        """Test pre_commit with pre-commit hook configured."""
         # Create .git/hooks/pre-commit
         Path(".git/hooks").mkdir(parents=True, exist_ok=True)
         Path(".git/hooks/pre-commit").touch()
 
-        # Mock shutil.which to return a valid prek path and mock exec.run to avoid actual execution
-        with mock.patch("shutil.which") as mock_which:
-            with mock.patch("jjpr.cmds.pre_commit_change") as pcc:
-                mock_which.return_value = "/usr/bin/prek"
-                cmds.pre_commit_stack(None)
-                assert pcc.called
+        with mock.patch("jjpr.cmds.pre_commit_change") as pcc:
+            cmds.pre_commit_stack(None)
+            assert pcc.called
 
     def test_with_arc_hook(self, repo_with_commits: Path):
-        """Test pre_commit with arc linter configured."""
         # Create .arclint
         Path(".arclint").touch()
 
@@ -156,7 +150,6 @@ class TestPreCommitChange:
 
 class TestDisplayList:
     def test_display_list_multi(self):
-        """Test display_list with multiple items from same forge."""
         items = [
             make_cr_list_item(cr_id="123", title="Fix bug"),
             make_cr_list_item(
@@ -170,16 +163,13 @@ class TestDisplayList:
         cmds.display_list(items, multi=True)
 
     def test_display_list_empty(self):
-        """Test display_list with no items."""
         cmds.display_list([], multi=False)
 
     def test_display_list_single_item(self):
-        """Test display_list with single item."""
         items = [make_cr_list_item(cr_id="123", title="Fix bug")]
         cmds.display_list(items, multi=False)
 
     def test_display_list_multi_forge_urls(self):
-        """Test display_list with items from multiple forges."""
         items = [
             make_cr_list_item(
                 forge=DummyForge("https://github.com", "bob/proj1"),
@@ -199,7 +189,6 @@ class TestDisplayList:
         cmds.display_list(items, multi=True)
 
     def test_display_list_with_extra_fields(self):
-        """Test display_list with extra fields in items."""
         items = [
             make_cr_list_item(
                 cr_id="789",

@@ -30,7 +30,7 @@ class GitHub(Forge):
                 f"Invalid GitHub remote URL format: {self.remote_url}. Expected format: owner/repo"
             )
 
-    def push_cr(
+    def submit_cr(
         self,
         ref: str | None,
         draft: bool = False,

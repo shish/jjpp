@@ -63,8 +63,8 @@ def main(
     ctx.obj = GlobalOptions(cmds.Repo(path, remote), format)
 
 
-@app.command("push")
-def push_command(
+@app.command("submit")
+def submit_command(
     ctx: typer.Context,
     ref: str | None = typer.Argument(None, help="Ref to push"),
     pre_commit: bool = typer.Option(
@@ -84,16 +84,16 @@ def push_command(
         help="Commit/PR message",
     ),
 ) -> None:
-    """Push current stack to the forge."""
+    """Submit current stack to the forge."""
     r = t.cast(GlobalOptions, ctx.obj).repo
     with r.chdir():
         if pre_commit:
             cmds.pre_commit_stack(ref)
-        r.remote.push_cr(ref, draft=draft, message=message)
+        r.remote.submit_cr(ref, draft=draft, message=message)
 
 
-@app.command("pull")
-def pull_command(
+@app.command("rebase")
+def rebase_command(
     ctx: typer.Context,
     all: bool = typer.Option(
         False,

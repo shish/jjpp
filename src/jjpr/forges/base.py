@@ -34,13 +34,13 @@ class Forge(ABC):
         return f"[link={self.forge_url}]{self.__class__.__name__}[/link]"
 
     @abstractmethod
-    def push_cr(
+    def submit_cr(
         self,
         ref: str | None,
         draft: bool = False,
         message: str | None = None,
     ) -> None:
-        """Push changes to the forge."""
+        """Submit changes to the forge."""
 
     @abstractmethod
     def checkout_cr(self, identifier: str) -> None:

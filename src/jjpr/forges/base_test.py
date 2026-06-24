@@ -15,7 +15,7 @@ class DummyForge(base.Forge):
         ):
             super().__init__("https://example.com/dummy.git")
 
-    def push_cr(
+    def submit_cr(
         self,
         ref: str | None,
         draft: bool = False,

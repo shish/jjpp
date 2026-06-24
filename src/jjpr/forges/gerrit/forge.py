@@ -31,7 +31,7 @@ class Gerrit(Forge):
 
         self.client = GerritClient(self.forge_url)
 
-    def push_cr(
+    def submit_cr(
         self,
         ref: str | None,
         draft: bool = False,

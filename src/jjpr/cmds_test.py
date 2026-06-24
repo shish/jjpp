@@ -21,7 +21,7 @@ class DummyForge(Forge):
     def __rich__(self) -> str:
         return f"[link={self.forge_url}]DummyForge[/link]"
 
-    def push_cr(
+    def submit_cr(
         self, ref: str | None, draft: bool = False, message: str | None = None
     ) -> None:
         pass

@@ -35,7 +35,7 @@ class Phabricator(Forge):
         except Exception as e:
             raise exc.UserError(f"Error loading repo config from .arcconfig: {e}")
 
-    def push_cr(
+    def submit_cr(
         self,
         ref: str | None,
         draft: bool = False,
